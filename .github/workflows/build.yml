@@ -19,7 +19,7 @@ jobs:
           init-shell: bash
           environment-name: pyspatialstats-env
           create-args: >-
-            python=3.9
+            python=3.10
 
       - name: Install cibuildwheel
         shell: bash -l {0}
@@ -33,7 +33,7 @@ jobs:
           micromamba activate pyspatialstats-env
           python -m cibuildwheel --output-dir wheelhouse
         env:
-          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.9"
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.10"
           CIBW_SKIP: pp*
 
       - uses: actions/upload-artifact@v4

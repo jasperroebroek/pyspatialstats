@@ -3,7 +3,7 @@ requires = [
     "setuptools",
     "wheel",
     "cython",
-    "numpy"
+    "numpy",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -21,9 +21,10 @@ dependencies = [
     "numpy",
     "numpydantic",
     "joblib",
-    "pandas"
+    "pandas",
+    "scipy"
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [project.optional-dependencies]
 documentation = [
@@ -39,7 +40,6 @@ develop = [
     "sphinx",
     "sphinx_rtd_theme",
     "numpydoc",
-    "scipy",
     "jupyter",
     "matplotlib",
     "pytest",
@@ -48,7 +48,6 @@ develop = [
     "rasterio"
 ]
 test = [
-    "scipy",
     "pytest",
     "statsmodels"
 ]

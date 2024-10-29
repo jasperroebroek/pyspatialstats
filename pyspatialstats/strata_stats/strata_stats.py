@@ -25,7 +25,6 @@ def strata_fun(fun: Callable, ind: NDArray, **data) -> RasterFloat32:
         raise IndexError("Only 2D data is supported")
     rows, cols = ind.shape
     parsed_data = parse_data(ind, **data)
-    print([parsed_data[d].shape for d in parsed_data])
     return fun(rows=rows, cols=cols, **parsed_data)
 
 

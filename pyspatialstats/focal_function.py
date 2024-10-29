@@ -85,7 +85,7 @@ def process_window(
     **kwargs,
 ) -> None:
     input_slices = windows.input.slices
-    print({key: inputs[key][..., input_slices[0], input_slices[1]] for key in inputs})
+
     result = fn(
         **{key: inputs[key][..., input_slices[0], input_slices[1]] for key in inputs},
         **kwargs,
