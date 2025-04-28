@@ -1,7 +1,6 @@
 name: push
 description: Build and test on push
 
-
 on:
   push:
     branches:
