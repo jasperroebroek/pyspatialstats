@@ -6,7 +6,7 @@ from pydantic import validate_call
 
 from pyspatialstats.rolling.rolling_window import rolling_window
 from pyspatialstats.types import Mask, PositiveInt
-from pyspatialstats.window import Window, define_window, validate_window
+from pyspatialstats.windows import Window, define_window, validate_window
 
 
 @validate_call(config={"arbitrary_types_allowed": True})
@@ -29,7 +29,7 @@ def rolling_sum(
     reduce : bool, optional
         Reuse data if set to False (which is the default) in which case an array will be returned with dimensions that
         are close to the original; see ``flatten`` in :func:`pyspatialstats.rolling.rolling_window`. If set to true,
-        every entry is used exactly once, meaning that the sliding windows do not overlap. This Creates much smaller
+        every entry is used exactly once, meaning that the sliding views do not overlap. This Creates much smaller
         output dimensions.
 
     Returns
@@ -100,7 +100,7 @@ def rolling_mean(
     reduce : bool, optional
         Reuse data if set to False (which is the default) in which case an array will be returned with dimensions that
         are close to the original; see ``flatten`` in :func:`pyspatialstats.rolling.rolling_window`. If set to true,
-        every entry is used exactly once, meaning that the sliding windows do not overlap. This Creates much smaller
+        every entry is used exactly once, meaning that the sliding views do not overlap. This Creates much smaller
         output dimensions.
 
     Returns

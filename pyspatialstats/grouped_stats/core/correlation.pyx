@@ -2,31 +2,17 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 
-import numpy as np
-
-from pyspatialstats.stat_helper_functions import calculate_p_value
+from pyspatialstats.stat_utils import calculate_p_value
+from pyspatialstats.results import GroupedCorrelationResult
 
 cimport numpy as cnp
-from collections import namedtuple
 from libc.math cimport sqrt, isnan, NAN
 from libc.stdlib cimport calloc, free, malloc
 
-from ._grouped_count cimport _define_max_ind, _grouped_count
+from pyspatialstats.grouped_stats.core.count cimport _define_max_ind, _grouped_count
 
 
-GroupedCorrelationResult = namedtuple('PyGroupedCorrelationResult', ["c", "p"])
-
-
-cdef struct CyGroupedCorrelationResult:
-    float *c
-    float *t
-    long *df
-
-
-cdef CyGroupedCorrelationResult _grouped_correlation(size_t[:] ind,
-                                                     float[:] v1,
-                                                     float[:] v2,
-                                                     size_t max_ind) except * nogil:
+cdef CyGroupedCorrelationResult _grouped_correlation(size_t[:] ind, float[:] v1, float[:] v2, size_t max_ind) except * nogil: 
     cdef:
         size_t i, k, n = ind.shape[0]
         long *count = <long *> calloc(max_ind + 1, sizeof(long))

@@ -3,8 +3,8 @@ from typing import Callable
 import numpy as np
 from numpydantic import NDArray
 
-from pyspatialstats.grouped_stats._utils import parse_data
-from pyspatialstats.strata_stats._strata_stats import (
+from pyspatialstats.grouped_stats.utils import parse_data
+from pyspatialstats.strata_stats.core.stats import (
     StrataCorrelationResult,
     StrataLinearRegressionResult,
     _strata_correlation,

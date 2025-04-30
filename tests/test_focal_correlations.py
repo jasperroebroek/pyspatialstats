@@ -3,8 +3,7 @@ import pytest
 from scipy.stats import pearsonr
 
 from pyspatialstats.focal_stats import focal_correlation
-from pyspatialstats.focal_stats import focal_correlation_base
-from pyspatialstats.window import define_window
+from pyspatialstats.windows import define_window
 
 
 def overlapping_arrays(m, preserve_input=True):
@@ -127,12 +126,6 @@ def test_correlation_values():
         focal_correlation(a, b, window=5, reduce=True),
     )
 
-    # Numpy implementation
-    assert np.allclose(
-        pearsonr(a.flatten(), b.flatten())[0],
-        focal_correlation_base(a, b, window=5)[2, 2],
-    )
-
     # Local implementation
     assert np.allclose(
         pearsonr(a.flatten(), b.flatten())[0],
@@ -147,10 +140,6 @@ def test_correlation_values_large():
 
     assert np.allclose(
         focal_correlation(a, b), focal_correlation_simple(a, b), equal_nan=True
-    )
-
-    assert np.allclose(
-        focal_correlation_base(a, b), focal_correlation_simple(a, b), equal_nan=True
     )
 
 
@@ -275,14 +264,3 @@ def test_correlation_dtype():
     a = np.random.rand(5, 5).astype(np.float64)
     b = np.random.rand(5, 5).astype(np.float64)
     assert focal_correlation(a, b).dtype == np.float64
-
-
-# def test_correlation_against_base():
-#     import rasterio as rio
-#     with rio.open("../data/tree_height.asc") as f:
-#         m1 = f.read(indexes=1)
-#     with rio.open("../data/wtd.tif") as f:
-#         m2 = f.read(indexes=1)
-#     assert np.allclose(focal_correlation_base(m1, m2),
-#                        focal_correlation(m1, m2),
-#                        equal_nan=True)

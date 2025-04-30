@@ -4,7 +4,7 @@
 
 import numpy as np
 
-from ._iteration_params cimport _define_iter_params, IterParams
+from pyspatialstats.focal_stats.core.iteration_params cimport define_iter_params, IterParams
 
 cimport numpy as np
 from libc.math cimport isnan, sqrt, NAN
@@ -33,7 +33,7 @@ cpdef double[:, ::1] _focal_std(double[:, ::1] a,
     ws[0] = window_shape[0]
     ws[1] = window_shape[1]
 
-    ip = _define_iter_params(shape, ws, fraction_accepted, reduce)
+    ip = define_iter_params(shape, ws, fraction_accepted, reduce)
     r = np.full(ip.shape, np.nan, dtype=np.float64)
 
     with nogil:
@@ -91,7 +91,7 @@ cpdef double[:, ::1] _focal_sum(double[:, ::1] a,
     ws[0] = window_shape[0]
     ws[1] = window_shape[1]
 
-    ip = _define_iter_params(shape, ws, fraction_accepted, reduce)
+    ip = define_iter_params(shape, ws, fraction_accepted, reduce)
     r = np.full(ip.shape, np.nan, dtype=np.float64)
 
     with nogil:
@@ -141,7 +141,7 @@ cpdef double[:, ::1] _focal_min(double[:, ::1] a,
     ws[0] = window_shape[0]
     ws[1] = window_shape[1]
 
-    ip = _define_iter_params(shape, ws, fraction_accepted, reduce)
+    ip = define_iter_params(shape, ws, fraction_accepted, reduce)
     r = np.full(ip.shape, np.nan, dtype=np.float64)
 
     with nogil:
@@ -192,7 +192,7 @@ cpdef double[:, ::1] _focal_max(double[:, ::1] a,
     ws[0] = window_shape[0]
     ws[1] = window_shape[1]
 
-    ip = _define_iter_params(shape, ws, fraction_accepted, reduce)
+    ip = define_iter_params(shape, ws, fraction_accepted, reduce)
     r = np.full(ip.shape, np.nan, dtype=np.float64)
 
     with nogil:
@@ -248,7 +248,7 @@ cpdef double[:, ::1] _focal_majority(double[:, ::1] a,
     ws[0] = window_shape[0]
     ws[1] = window_shape[1]
 
-    ip = _define_iter_params(shape, ws, fraction_accepted, reduce)
+    ip = define_iter_params(shape, ws, fraction_accepted, reduce)
 
     values = np.full(ip.num_values, dtype=np.float64, fill_value=np.nan)
     counts = np.zeros(ip.num_values, dtype=np.int32)

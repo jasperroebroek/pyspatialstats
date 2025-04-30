@@ -9,8 +9,8 @@ from libc.stdlib cimport calloc, free, malloc
 from numpy.math cimport NAN
 cimport numpy as cnp
 
-from ._grouped_count cimport _define_max_ind, _grouped_count
-from ._grouped_mean cimport _grouped_mean
+from pyspatialstats.grouped_stats.core.count cimport _define_max_ind, _grouped_count
+from pyspatialstats.grouped_stats.core.mean cimport _grouped_mean
 
 
 cdef float* _grouped_std(size_t[:] ind, float[:] v, float *mean_v, size_t max_ind) nogil:

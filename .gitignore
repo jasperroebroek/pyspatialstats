@@ -2,6 +2,7 @@
 build
 .pytest_cache
 .idea
+.vscode
 todo
 .DS_Store
 dist

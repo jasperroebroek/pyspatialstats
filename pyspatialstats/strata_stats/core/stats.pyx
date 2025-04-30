@@ -2,33 +2,27 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 
-from pyspatialstats.stat_helper_functions import calculate_p_value
-from pyspatialstats.types import RasterFloat32, RasterT
+from pyspatialstats.stat_utils import calculate_p_value
+from pyspatialstats.results import StrataLinearRegressionResult, StrataCorrelationResult, StrataStatsResult
 
-from collections import namedtuple
 import numpy as np
-
-from pyspatialstats.grouped_stats._grouped_count cimport _define_max_ind, _grouped_count
-from pyspatialstats.grouped_stats._grouped_mean cimport _grouped_mean
-from pyspatialstats.grouped_stats._grouped_min cimport _grouped_min
-from pyspatialstats.grouped_stats._grouped_max cimport _grouped_max
-from pyspatialstats.grouped_stats._grouped_std cimport _grouped_std
-from pyspatialstats.grouped_stats._grouped_correlation cimport _grouped_correlation, CyGroupedCorrelationResult
-from pyspatialstats.grouped_stats._grouped_linear_regression cimport (
-    _grouped_linear_regression,
-    CyGroupedLinearRegressionResult,
-)
 
 from libc.stdlib cimport free
 cimport numpy as cnp
 
-
-StrataStatsResult = namedtuple("StrataStatsResult",
-                               ['mean', 'std'])
-StrataCorrelationResult = namedtuple("StrataCorrelationResult",
-                                     ['c', 'p'])
-StrataLinearRegressionResult = namedtuple('StrataLinearRegressionResult',
-                                          ['a', 'b', 'se_a', 'se_b', 'p_a', 'p_b'])
+from pyspatialstats.grouped_stats.core.count cimport _define_max_ind, _grouped_count
+from pyspatialstats.grouped_stats.core.mean cimport _grouped_mean
+from pyspatialstats.grouped_stats.core.min cimport _grouped_min
+from pyspatialstats.grouped_stats.core.max cimport _grouped_max
+from pyspatialstats.grouped_stats.core.std cimport _grouped_std
+from pyspatialstats.grouped_stats.core.correlation cimport (
+    _grouped_correlation,
+    CyGroupedCorrelationResult
+)
+from pyspatialstats.grouped_stats.core.linear_regression cimport (
+    _grouped_linear_regression,
+    CyGroupedLinearRegressionResult
+)
 
 
 cdef int _apply_to_target(size_t[:] ind,

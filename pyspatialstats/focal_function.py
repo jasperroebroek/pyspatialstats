@@ -7,10 +7,10 @@ from numpy._typing import DTypeLike
 from numpydantic import NDArray
 from pydantic import BaseModel, ConfigDict, validate_call
 
-from pyspatialstats.raster_window import RasterWindowPair, construct_windows
+from pyspatialstats.views import RasterViewPair, construct_views
 from pyspatialstats.types import Mask, PositiveInt, Shape2D
 from pyspatialstats.utils import timeit
-from pyspatialstats.window import Window, define_window, validate_window
+from pyspatialstats.windows import Window, define_window, validate_window
 
 
 class MemmapContext(BaseModel):
@@ -81,10 +81,10 @@ def process_window(
     fn: Callable,
     inputs: Dict[str, NDArray],
     outputs: Dict[str, NDArray],
-    windows: RasterWindowPair,
+    views: RasterViewPair,
     **kwargs,
 ) -> None:
-    input_slices = windows.input.slices
+    input_slices = views.input.slices
 
     result = fn(
         **{key: inputs[key][..., input_slices[0], input_slices[1]] for key in inputs},
@@ -92,7 +92,7 @@ def process_window(
     )
 
     for key in outputs:
-        output_slices = windows.output.slices
+        output_slices = views.output.slices
         outputs[key][..., output_slices[0], output_slices[1]] = result[key]
 
 
@@ -129,15 +129,15 @@ def focal_function(
     window = define_window(window)
     print(str(window))
     validate_window(window, raster_shapes[0], reduce, allow_even=False)
-    window_shape = window.get_shape(2)
+    view_shape = window.get_shape(2)
 
     for key in outputs:
         shape = outputs[key].shape[-2:]
         if (
             reduce
             and (
-                raster_shapes[0][0] // window_shape[0],
-                raster_shapes[0][1] // window_shape[1],
+                raster_shapes[0][0] // view_shape[0],
+                raster_shapes[0][1] // view_shape[1],
             )
             != shape
             or not reduce
@@ -147,9 +147,9 @@ def focal_function(
                 f"Output shapes not matching input shapes: {raster_shapes[0]} {shape}"
             )
 
-    window_pairs = construct_windows(raster_shapes[0], window_shape, reduce)
+    view_pairs = construct_views(raster_shapes[0], view_shape, reduce)
 
     Parallel(n_jobs=n_jobs, verbose=verbose, prefer=prefer, mmap_mode="r+")(
         delayed(process_window)(fn, inputs, outputs, wp, **kwargs)
-        for wp in window_pairs
+        for wp in view_pairs
     )

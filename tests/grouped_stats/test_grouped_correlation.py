@@ -67,7 +67,7 @@ def test_grouped_correlation_against_scipy():
         # Calculate expected result using NumPy/SciPy
         expected_result = pearsonr(group_v1, group_v2)
 
-        # Compare the results
+        # Compare the results.py
         assert result.c[group] == pytest.approx(expected_result.statistic, rel=1e-4)
         assert result.p[group] == pytest.approx(expected_result.pvalue, rel=1e-4)
 
@@ -83,7 +83,7 @@ def test_grouped_correlation_all_values_in_single_group():
     # Calculate expected result using NumPy/SciPy
     expected_result = np.corrcoef(v1, v2)[1, 0]
 
-    # Compare the results
+    # Compare the results.py
     np.testing.assert_allclose(result.c[1], expected_result, rtol=1e-5, atol=1e-8)
 
 
@@ -102,7 +102,7 @@ def test_grouped_correlation_with_nan_values():
     # Calculate expected result using NumPy/SciPy
     expected_result = np.corrcoef(v1[mask], v2[mask])[1, 0]
 
-    # Compare the results
+    # Compare the results.py
     np.testing.assert_allclose(result.c[1], expected_result, rtol=1e-5)
 
 
@@ -115,7 +115,7 @@ def test_grouped_correlation_one_group_random(v1, v2):
     # Calculate expected result using NumPy/SciPy
     expected_result = np.corrcoef(v1.flatten(), v2.flatten())[1, 0]
 
-    # Compare the results
+    # Compare the results.py
     np.testing.assert_allclose(result.c[1], expected_result, rtol=1e-4)
 
 

@@ -7,6 +7,6 @@ cdef struct IterParams:
     long num_values
     double threshold
 
-cdef IterParams*  _define_iter_params(
+cdef IterParams*  define_iter_params(
     size_t[2] shape, size_t[2] window_size, double fraction_accepted, bint reduce
 ) noexcept nogil

@@ -9,7 +9,7 @@ correlation.
     Variable(s). If one, 'v', otherwise v1, v2 etc. They will be parsed to floats.
 
 """
-from pyspatialstats.grouped_stats._utils import define_max_ind, generate_index
+from pyspatialstats.grouped_stats.utils import define_max_ind, generate_index
 from pyspatialstats.grouped_stats.grouped_stats import (
     grouped_correlation,
     grouped_correlation_pd,

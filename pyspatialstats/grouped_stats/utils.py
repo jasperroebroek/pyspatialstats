@@ -5,14 +5,14 @@ import pandas as pd
 from numpydantic import NDArray, Shape
 from numpydantic.dtype import Int64
 
-from pyspatialstats.grouped_stats._grouped_correlation import GroupedCorrelationResult
-from pyspatialstats.grouped_stats._grouped_count import define_max_ind as cy_define_max_ind
-from pyspatialstats.grouped_stats._grouped_linear_regression import GroupedLinearRegressionResult
+from pyspatialstats.grouped_stats.core.correlation import GroupedCorrelationResult
+from pyspatialstats.grouped_stats.core.count import define_max_ind as cydefine_max_ind
+from pyspatialstats.grouped_stats.core.linear_regression import GroupedLinearRegressionResult
 
 
 def define_max_ind(ind: NDArray) -> int:
     ind_flat = np.ascontiguousarray(ind, dtype=np.uintp).ravel()
-    return cy_define_max_ind(ind_flat)
+    return cydefine_max_ind(ind_flat)
 
 
 def generate_index(ind: NDArray, v: NDArray) -> NDArray[Shape["*"], Int64]:

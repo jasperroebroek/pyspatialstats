@@ -6,14 +6,14 @@ Algorithm to correlate two arrays (2D) with each other
 """
 import numpy as np
 
-from ._iteration_params cimport _define_iter_params, IterParams
+from pyspatialstats.focal_stats.core.iteration_params cimport define_iter_params, IterParams
 
 cimport numpy as np
 from libc.stdlib cimport free
 from libc.math cimport isnan, sqrt
 
 
-cpdef double[:, ::1] _correlate_rasters(double[:, ::1] a,
+cpdef double[:, ::1] _focal_correlation(double[:, ::1] a,
                                         double[:, ::1] b,
                                         int[:] window_shape,
                                         np.npy_uint8[:, ::1] mask,
@@ -35,7 +35,7 @@ cpdef double[:, ::1] _correlate_rasters(double[:, ::1] a,
     ws[0] = window_shape[0]
     ws[1] = window_shape[1]
 
-    ip = _define_iter_params(shape, ws, fraction_accepted, reduce)
+    ip = define_iter_params(shape, ws, fraction_accepted, reduce)
     corr = np.full(ip.shape, np.nan, dtype=np.float64)
 
     with nogil:

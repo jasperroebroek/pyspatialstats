@@ -5,24 +5,29 @@ import numpy as np
 from numpydantic import NDArray
 from pydantic import validate_call
 
-from pyspatialstats.rolling import rolling_sum, rolling_window
-from pyspatialstats.focal_stats._focal_statistics_core import (
+from pyspatialstats.focal_stats.core.stats import (
     _focal_majority,
     _focal_max,
     _focal_min,
     _focal_std,
     _focal_sum,
 )
+from pyspatialstats.rolling import rolling_sum, rolling_window
 from pyspatialstats.types import Fraction, Mask, PositiveInt, RasterFloat64
 from pyspatialstats.utils import (
-    _calc_below_fraction_accepted_mask,
-    _calc_count_values,
-    _create_output_array,
-    _parse_array,
-    _parse_nans,
+    calc_below_fraction_accepted_mask,
+    calc_count_values,
+    create_output_array,
+    parse_nans,
+    parse_raster,
     timeit,
 )
-from pyspatialstats.window import Window, define_ind_inner, define_window, validate_window
+from pyspatialstats.windows import (
+    Window,
+    define_ind_inner,
+    define_window,
+    validate_window,
+)
 
 
 class MajorityMode(IntEnum):
@@ -72,7 +77,7 @@ def focal_min(
             numpy ndarray of the function applied to input array ``a``. The raster_shape will
             be the same as the input array. The border of the map will be filled with nan,
             because of the lack of data to calculate the border. In the future other
-            behaviours might be implemented. To obtain only the useful cells the
+            behaviors might be implemented. To obtain only the useful cells the
             following might be done:
 
                 >>> window_shape = 5
@@ -88,8 +93,8 @@ def focal_min(
             remain equal. No border of NaN values is present.
     """
     dtype_original = a.dtype
-    a = _parse_array(a)
-    empty_flag, nan_flag, nan_mask = _parse_nans(a, dtype_original)
+    a = parse_raster(a)
+    empty_flag, nan_flag, nan_mask = parse_nans(a, dtype_original)
 
     shape = np.asarray(a.shape)
 
@@ -104,10 +109,10 @@ def focal_min(
     if empty_flag:
         if verbose:
             print("- Empty array")
-        return _create_output_array(a, window_shape, reduce)
+        return create_output_array(a, window_shape, reduce)
 
     if not nan_flag and not window.masked:
-        r = _create_output_array(a, window_shape, reduce)
+        r = create_output_array(a, window_shape, reduce)
 
         r[ind_inner] = rolling_window(a, window=window, reduce=reduce).min(axis=(2, 3))
 
@@ -157,7 +162,7 @@ def focal_max(
             numpy ndarray of the function applied to input array ``a``. The raster_shape will
             be the same as the input array. The border of the map will be filled with nan,
             because of the lack of data to calculate the border. In the future other
-            behaviours might be implemented. To obtain only the useful cells the
+            behaviors might be implemented. To obtain only the useful cells the
             following might be done:
 
                 >>> window_shape = 5
@@ -173,8 +178,8 @@ def focal_max(
             remain equal. No border of NaN values is present.
     """
     dtype_original = a.dtype
-    a = _parse_array(a)
-    empty_flag, nan_flag, nan_mask = _parse_nans(a, dtype_original)
+    a = parse_raster(a)
+    empty_flag, nan_flag, nan_mask = parse_nans(a, dtype_original)
 
     shape = np.asarray(a.shape)
 
@@ -189,10 +194,10 @@ def focal_max(
     if empty_flag:
         if verbose:
             print("- Empty array")
-        return _create_output_array(a, window_shape, reduce)
+        return create_output_array(a, window_shape, reduce)
 
     if not nan_flag and not window.masked:
-        r = _create_output_array(a, window_shape, reduce)
+        r = create_output_array(a, window_shape, reduce)
 
         r[ind_inner] = rolling_window(a, window=window, reduce=reduce).max(axis=(2, 3))
 
@@ -261,8 +266,8 @@ def focal_mean(
             remain equal. No border of NaN values is present.
     """
     dtype_original = a.dtype
-    a = _parse_array(a)
-    empty_flag, nan_flag, nan_mask = _parse_nans(a, dtype_original)
+    a = parse_raster(a)
+    empty_flag, nan_flag, nan_mask = parse_nans(a, dtype_original)
 
     shape = np.asarray(a.shape)
 
@@ -279,7 +284,7 @@ def focal_mean(
         reduce=reduce,
     )
 
-    count_values = _calc_count_values(window, nan_mask, reduce, ind_inner)
+    count_values = calc_count_values(window, nan_mask, reduce, ind_inner)
 
     r[ind_inner] = r[ind_inner] / count_values
     return r
@@ -346,8 +351,8 @@ def focal_std(
             remain equal. No border of NaN values is present.
     """
     dtype_original = a.dtype
-    a = _parse_array(a)
-    empty_flag, nan_flag, nan_mask = _parse_nans(a, dtype_original)
+    a = parse_raster(a)
+    empty_flag, nan_flag, nan_mask = parse_nans(a, dtype_original)
 
     shape = np.asarray(a.shape)
 
@@ -360,9 +365,11 @@ def focal_std(
     if empty_flag:
         if verbose:
             print("- Empty array")
-        return _create_output_array(a, window_shape, reduce)
+        return create_output_array(a, window_shape, reduce)
 
-    return np.asarray(_focal_std(a, window_shape, mask, fraction_accepted, reduce, std_df))
+    return np.asarray(
+        _focal_std(a, window_shape, mask, fraction_accepted, reduce, std_df)
+    )
 
 
 @validate_call(config={"arbitrary_types_allowed": True})
@@ -422,8 +429,8 @@ def focal_sum(
             remain equal. No border of NaN values is present.
     """
     dtype_original = a.dtype
-    a = _parse_array(a)
-    empty_flag, nan_flag, nan_mask = _parse_nans(a, dtype_original)
+    a = parse_raster(a)
+    empty_flag, nan_flag, nan_mask = parse_nans(a, dtype_original)
 
     shape = np.asarray(a.shape)
 
@@ -438,14 +445,14 @@ def focal_sum(
     if empty_flag:
         if verbose:
             print("- Empty array")
-        return _create_output_array(a, window_shape, reduce)
+        return create_output_array(a, window_shape, reduce)
 
     if not window.masked:
-        r = _create_output_array(a, window_shape, reduce)
+        r = create_output_array(a, window_shape, reduce)
         a_parsed = a.copy()
         a_parsed[nan_mask] = 0
 
-        below_fraction_accepted_mask = _calc_below_fraction_accepted_mask(
+        below_fraction_accepted_mask = calc_below_fraction_accepted_mask(
             window, nan_mask, ind_inner, fraction_accepted, reduce
         )
         r[ind_inner] = rolling_sum(a_parsed, window=window, reduce=reduce)
@@ -519,8 +526,8 @@ def focal_majority(
             remain equal. No border of NaN values is present.
     """
     dtype_original = a.dtype
-    a = _parse_array(a)
-    empty_flag, nan_flag, nan_mask = _parse_nans(a, dtype_original)
+    a = parse_raster(a)
+    empty_flag, nan_flag, nan_mask = parse_nans(a, dtype_original)
 
     shape = np.asarray(a.shape)
 
@@ -533,7 +540,7 @@ def focal_majority(
     if empty_flag:
         if verbose:
             print("- Empty array")
-        return _create_output_array(a, window_shape, reduce)
+        return create_output_array(a, window_shape, reduce)
 
     return np.asarray(
         _focal_majority(

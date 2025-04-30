@@ -2,30 +2,14 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 
-from collections import namedtuple
-import numpy as np
-
-from pyspatialstats.stat_helper_functions import calculate_p_value
+from pyspatialstats.stat_utils import calculate_p_value
+from pyspatialstats.results import GroupedLinearRegressionResult
 
 from libc.math cimport sqrt, isnan, NAN, pow
 from libc.stdlib cimport malloc, calloc, free
 cimport numpy as cnp
 
-from ._grouped_count cimport _define_max_ind, _grouped_count
-
-
-cdef struct CyGroupedLinearRegressionResult:
-    long *df
-    float *a
-    float *b
-    float *se_a
-    float *se_b
-    float *t_a
-    float *t_b
-
-
-GroupedLinearRegressionResult = namedtuple('PyGroupedLinearRegressionResult',
-                                           ["a", "b", 'se_a', 'se_b', 't_a', 't_b', "p_a", "p_b"])
+from pyspatialstats.grouped_stats.core.count cimport _define_max_ind, _grouped_count
 
 
 cdef CyGroupedLinearRegressionResult _grouped_linear_regression(size_t[:] ind,
@@ -199,7 +183,6 @@ def grouped_linear_regression_npy_filtered(size_t[:] ind, float[:] v1, float[:] 
 
     try:
         with nogil:
-            max_ind = _define_max_ind(ind)
             max_ind = _define_max_ind(ind)
             count_v1 = _grouped_count(ind, v1, max_ind)
             count_v2 = _grouped_count(ind, v2, max_ind)

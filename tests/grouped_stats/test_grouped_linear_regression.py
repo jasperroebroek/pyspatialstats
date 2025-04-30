@@ -76,7 +76,7 @@ def test_py_grouped_correlation_against_scipy():
         # Calculate expected result using NumPy/SciPy
         expected_result = linregress(group_v1, group_v2)
 
-        # Compare the results
+        # Compare the results.py
         assert result.a[group] == pytest.approx(expected_result.slope, rel=1e-4)
         assert result.b[group] == pytest.approx(expected_result.intercept, rel=1e-4)
         assert result.p_a[group] == pytest.approx(expected_result.pvalue, rel=1e-4)

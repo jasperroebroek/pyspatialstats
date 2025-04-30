@@ -13,8 +13,11 @@ Shape2D = Tuple[PositiveInt, PositiveInt]
 Mask = NDArray[Any, Bool]
 
 RasterWindowShape = NDArray[NPShape["2"], Int32]
+
+# generic raster type
+RasterT = NDArray[NPShape["*,*"], Any]
+# specific raster types
 RasterFloat64 = NDArray[NPShape["*,*"], Float64]
 RasterFloat32 = NDArray[NPShape["*,*"], Float32]
 RasterInt32 = NDArray[NPShape["*,*"], Int32]
 RasterBool = NDArray[NPShape["*,*"], Bool]
-RasterT = NDArray[NPShape["*,*"], Any]

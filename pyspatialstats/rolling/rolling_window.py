@@ -6,7 +6,7 @@ from numpydantic.ndarray import NDArray
 from pydantic import validate_call
 
 from pyspatialstats.types import Mask, PositiveInt
-from pyspatialstats.window import Window, define_window, validate_window
+from pyspatialstats.windows import Window, define_window, validate_window
 
 
 @validate_call(config={"arbitrary_types_allowed": True})
@@ -51,7 +51,7 @@ def rolling_window(
     reduce : bool, optional
         Reuse data if set to False (which is the default) in which case an array will be returned with dimensions that
         are close to the original; see ``flatten``. If set to True, every entry is used exactly once, meaning that the
-        sliding windows do not overlap each other. This creating much smaller output array.
+        sliding views do not overlap each other. This creating much smaller output array.
     kwargs : dict, optional
         Arguments for :func:`~numpy.lib.stride_tricks.as_strided`, notably ``subok`` and ``writeable`` (see numpy
         documentation).

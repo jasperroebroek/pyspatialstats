@@ -1,3 +1,7 @@
+"""
+This module defines the definitions of the views in the sliding window methods
+"""
+
 from abc import ABC, abstractmethod
 from typing import Any, Sequence
 
