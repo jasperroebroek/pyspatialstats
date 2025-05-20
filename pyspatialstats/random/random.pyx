@@ -31,6 +31,7 @@ cdef class RandomInts:
         self.rng = <bitgen_t *> PyCapsule_GetPointer(capsule, capsule_name)
 
     cdef inline uint64_t next_value(self, uint64_t bound) noexcept nogil:
+        """random_bounded_uint64 returns a value including rng"""
         return random_bounded_uint64(self.rng, off=0, rng=bound - 1, mask=0, use_masked=0)
 
     cdef uint64_t[:] randints(self, uint64_t bound, int n):

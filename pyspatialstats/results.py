@@ -1,23 +1,18 @@
 from collections import namedtuple
 
-GroupedCorrelationResult = namedtuple(
-    'PyGroupedCorrelationResult',
+CorrelationResult = namedtuple(
+    "CorrelationResult",
     ["c", "p"],
 )
-GroupedLinearRegressionResult = namedtuple(
-    'PyGroupedLinearRegressionResult',
-    ["a", "b", 'se_a', 'se_b', 't_a', 't_b', "p_a", "p_b"]
+StatsResult = namedtuple(
+    "StatsResult",
+    ["mean", "std"],
 )
-
-StrataStatsResult = namedtuple(
-    "StrataStatsResult",
-    ['mean', 'std']
+LinearRegressionResult = namedtuple(
+    "LinearRegressionResult",
+    ["a", "b", "se_a", "se_b", "t_a", "t_b", "p_a", "p_b"],
 )
-StrataCorrelationResult = namedtuple(
-    "StrataCorrelationResult",
-    ['c', 'p']
-)
-StrataLinearRegressionResult = namedtuple(
-    'StrataLinearRegressionResult',
-    ['a', 'b', 'se_a', 'se_b', 'p_a', 'p_b']
+BootstrapMeanResult = namedtuple(
+    "BootstrapMeanResult",
+    ["mean", "se"],
 )

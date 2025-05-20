@@ -16,7 +16,6 @@ from pyspatialstats.rolling import rolling_sum, rolling_window
 from pyspatialstats.types import Fraction, Mask, PositiveInt, RasterFloat64
 from pyspatialstats.utils import (
     calc_below_fraction_accepted_mask,
-    calc_count_values,
     create_output_array,
     parse_nans,
     parse_raster,
@@ -24,7 +23,6 @@ from pyspatialstats.utils import (
 )
 from pyspatialstats.windows import (
     Window,
-    define_ind_inner,
     define_window,
     validate_window,
 )
@@ -58,11 +56,11 @@ def focal_min(
         a rectangular window, a mask or a Window object.
     fraction_accepted : float, optional
         Fraction of valid cells (not NaN) per window that is deemed acceptable
-        
+
         * ``0``: all windows are calculated if at least 1 value is present
         * ``1``: only windows completely filled with values are calculated
         * ``0-1``: fraction of acceptability
-        
+
     verbose : bool, optional
         Verbosity with timing. False by default
     reduce : bool, optional
@@ -104,7 +102,7 @@ def focal_min(
     mask = window.get_mask(2)
     window_shape = np.asarray(window.get_shape(2), dtype=np.int32)
 
-    ind_inner = define_ind_inner(window, reduce)
+    ind_inner = window.get_ind_inner(reduce)
 
     if empty_flag:
         if verbose:
@@ -143,11 +141,11 @@ def focal_max(
         a rectangular window, a mask or a Window object.
     fraction_accepted : float, optional
         Fraction of valid cells (not NaN) per window that is deemed acceptable
-        
+
         * ``0``: all windows are calculated if at least 1 value is present
         * ``1``: only windows completely filled with values are calculated
         * ``0-1``: fraction of acceptability
-        
+
     verbose : bool, optional
         Verbosity with timing. False by default
     reduce : bool, optional
@@ -189,7 +187,7 @@ def focal_max(
     mask = window.get_mask(2)
     window_shape = np.asarray(window.get_shape(2), dtype=np.int32)
 
-    ind_inner = define_ind_inner(window, reduce)
+    ind_inner = window.get_ind_inner(reduce)
 
     if empty_flag:
         if verbose:
@@ -204,90 +202,6 @@ def focal_max(
         return r
 
     return np.asarray(_focal_max(a, window_shape, mask, fraction_accepted, reduce))
-
-
-@validate_call(config={"arbitrary_types_allowed": True})
-@timeit
-def focal_mean(
-    a: NDArray,
-    *,
-    window: PositiveInt | Sequence[PositiveInt] | Mask | Window,
-    fraction_accepted: Fraction = 0.7,
-    verbose: bool = False,
-    reduce: bool = False,
-) -> RasterFloat64:
-    """
-    Focal mean
-
-    Parameters
-    ----------
-    a : array_like
-        Input array (2D)
-    window : int, array_like, Window
-        Window that is applied over ``a``. It can be an integer or a sequence of integers, which will be interpreted as
-        a rectangular window, a mask or a Window object.
-    mask : array_like, optional
-        A boolean array (2D). If provided, its raster_shape will be used as ``window_shape``, and its entries are used to mask
-        every window.
-    fraction_accepted : float, optional
-        Fraction of valid cells (not NaN) per window that is deemed acceptable
-        
-        * ``0``: all windows are calculated if at least 1 value is present
-        * ``1``: only windows completely filled with values are calculated
-        * ``0-1``: fraction of acceptability
-        
-    verbose : bool, optional
-        Verbosity with timing. False by default
-    reduce : bool, optional
-        The way in which the windowed array is created. If true, all values are used exactly once. If False (which is
-        the default), values are reduced and the output array has the same raster_shape as the input array, albeit with a
-        border of nans where there are not enough values to calculate the cells.
-
-    Returns
-    -------
-    :obj:`~numpy.ndarray`
-        if ``reduce`` is False:
-            numpy ndarray of the function applied to input array ``a``. The raster_shape will
-            be the same as the input array. The border of the map will be filled with nan,
-            because of the lack of data to calculate the border. In the future other
-            behaviours might be implemented. To obtain only the useful cells the
-            following might be done:
-
-                >>> window_shape = 5
-                >>> fringe = window_shape // 2
-                >>> ind_inner = np.s_[fringe:-fringe, fringe:-fringe]
-                >>> a = a[ind_inner]
-
-            in which case a will only contain the cells for which all data was
-            present
-        if ``reduce`` is True:
-            numpy ndarray of the function applied on input array ``a``. The raster_shape
-            will be the original raster_shape divided by the ``window_shape``. Dimensions
-            remain equal. No border of NaN values is present.
-    """
-    dtype_original = a.dtype
-    a = parse_raster(a)
-    empty_flag, nan_flag, nan_mask = parse_nans(a, dtype_original)
-
-    shape = np.asarray(a.shape)
-
-    window = define_window(window)
-    validate_window(window, shape, reduce, allow_even=False)
-
-    ind_inner = define_ind_inner(window, reduce)
-
-    r = focal_sum(
-        a,
-        window=window,
-        fraction_accepted=fraction_accepted,
-        verbose=verbose,
-        reduce=reduce,
-    )
-
-    count_values = calc_count_values(window, nan_mask, reduce, ind_inner)
-
-    r[ind_inner] = r[ind_inner] / count_values
-    return r
 
 
 @validate_call(config={"arbitrary_types_allowed": True})
@@ -313,11 +227,11 @@ def focal_std(
         a rectangular window, a mask or a Window object.
     fraction_accepted : float, optional
         Fraction of valid cells (not NaN) per window that is deemed acceptable
-        
+
         * ``0``: all windows are calculated if at least 1 value is present
         * ``1``: only windows completely filled with values are calculated
         * ``0-1``: fraction of acceptability
-        
+
     verbose : bool, optional
         Verbosity with timing. False by default
     reduce : bool, optional
@@ -394,11 +308,11 @@ def focal_sum(
         a rectangular window, a mask or a Window object.
     fraction_accepted : float, optional
         Fraction of valid cells (not NaN) per window that is deemed acceptable
-        
+
         * ``0``: all windows are calculated if at least 1 value is present
         * ``1``: only windows completely filled with values are calculated
         * ``0-1``: fraction of acceptability
-        
+
     verbose : bool, optional
         Verbosity with timing. False by default
     reduce : bool, optional
@@ -440,7 +354,7 @@ def focal_sum(
     mask = window.get_mask(2)
     window_shape = np.asarray(window.get_shape(2), dtype=np.int32)
 
-    ind_inner = define_ind_inner(window, reduce)
+    ind_inner = window.get_ind_inner(reduce)
 
     if empty_flag:
         if verbose:
@@ -485,11 +399,11 @@ def focal_majority(
         a rectangular window, a mask or a Window object.
     fraction_accepted : float, optional
         Fraction of valid cells (not NaN) per window that is deemed acceptable
-        
+
         * ``0``: all windows are calculated if at least 1 value is present
         * ``1``: only windows completely filled with values are calculated
         * ``0-1``: fraction of acceptability
-        
+
     verbose : bool, optional
         Verbosity with timing. False by default
     reduce : bool, optional

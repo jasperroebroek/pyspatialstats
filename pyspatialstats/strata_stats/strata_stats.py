@@ -5,8 +5,8 @@ from numpydantic import NDArray
 
 from pyspatialstats.grouped_stats.utils import parse_data
 from pyspatialstats.strata_stats.core.stats import (
-    StrataCorrelationResult,
-    StrataLinearRegressionResult,
+    CorrelationResult,
+    LinearRegressionResult,
     _strata_correlation,
     _strata_count,
     _strata_linear_regression,
@@ -16,10 +16,10 @@ from pyspatialstats.strata_stats.core.stats import (
     _strata_min,
     _strata_std,
 )
-from pyspatialstats.types import RasterFloat32
+from pyspatialstats.types import RasterFloat64
 
 
-def strata_fun(fun: Callable, ind: NDArray, **data) -> RasterFloat32:
+def strata_fun(fun: Callable, ind: NDArray, **data) -> RasterFloat64:
     ind = np.asarray(ind)
     if ind.ndim != 2:
         raise IndexError("Only 2D data is supported")
@@ -28,7 +28,7 @@ def strata_fun(fun: Callable, ind: NDArray, **data) -> RasterFloat32:
     return fun(rows=rows, cols=cols, **parsed_data)
 
 
-def strata_count(ind: NDArray, v: NDArray) -> RasterFloat32:
+def strata_count(ind: NDArray, v: NDArray) -> RasterFloat64:
     """
     Calculate the number of occurrences of each stratum.
 
@@ -41,13 +41,13 @@ def strata_count(ind: NDArray, v: NDArray) -> RasterFloat32:
 
     Returns
     -------
-    RasterFloat32
+    RasterFloat64
         The minimum value in each stratum.
     """
     return strata_fun(_strata_count, ind=ind, v=v)
 
 
-def strata_min(ind: NDArray, v: NDArray) -> RasterFloat32:
+def strata_min(ind: NDArray, v: NDArray) -> RasterFloat64:
     """
     Calculate the minimum value in each stratum.
 
@@ -60,13 +60,13 @@ def strata_min(ind: NDArray, v: NDArray) -> RasterFloat32:
 
     Returns
     -------
-    RasterFloat32
+    RasterFloat64
         The minimum value in each stratum.
     """
     return strata_fun(_strata_min, ind=ind, v=v)
 
 
-def strata_max(ind: NDArray, v: NDArray) -> RasterFloat32:
+def strata_max(ind: NDArray, v: NDArray) -> RasterFloat64:
     """
     Calculate the maximum value in each stratum.
 
@@ -79,13 +79,13 @@ def strata_max(ind: NDArray, v: NDArray) -> RasterFloat32:
 
     Returns
     -------
-    RasterFloat32
+    RasterFloat64
         The maximum value in each stratum.
     """
     return strata_fun(_strata_max, ind=ind, v=v)
 
 
-def strata_mean(ind: NDArray, v: NDArray) -> RasterFloat32:
+def strata_mean(ind: NDArray, v: NDArray) -> RasterFloat64:
     """
     Calculate the mean value in each stratum.
 
@@ -98,13 +98,13 @@ def strata_mean(ind: NDArray, v: NDArray) -> RasterFloat32:
 
     Returns
     -------
-    RasterFloat32
+    RasterFloat64
         The mean value in each stratum.
     """
     return strata_fun(_strata_mean, ind=ind, v=v)
 
 
-def strata_std(ind: NDArray, v: NDArray) -> RasterFloat32:
+def strata_std(ind: NDArray, v: NDArray) -> RasterFloat64:
     """
     Calculate the standard deviation in each stratum.
 
@@ -117,13 +117,13 @@ def strata_std(ind: NDArray, v: NDArray) -> RasterFloat32:
 
     Returns
     -------
-    RasterFloat32
+    RasterFloat64
         The standard deviation in each stratum.
     """
     return strata_fun(_strata_std, ind=ind, v=v)
 
 
-def strata_mean_std(ind: NDArray, v: NDArray) -> RasterFloat32:
+def strata_mean_std(ind: NDArray, v: NDArray) -> RasterFloat64:
     """
     Calculate the mean and standard deviation in each stratum.
 
@@ -136,13 +136,13 @@ def strata_mean_std(ind: NDArray, v: NDArray) -> RasterFloat32:
 
     Returns
     -------
-    RasterFloat32
+    RasterFloat64
         The mean and standard deviation in each stratum.
     """
     return strata_fun(_strata_mean_std, ind=ind, v=v)
 
 
-def strata_correlation(ind: NDArray, v1: NDArray, v2: NDArray) -> StrataCorrelationResult:
+def strata_correlation(ind: NDArray, v1: NDArray, v2: NDArray) -> CorrelationResult:
     """
     Calculate the correlation coefficient between two variables in each stratum.
 
@@ -155,7 +155,7 @@ def strata_correlation(ind: NDArray, v1: NDArray, v2: NDArray) -> StrataCorrelat
 
     Returns
     -------
-    StrataCorrelationResult
+    CorrelationResult
         The correlation coefficient in each stratum.
         c - the correlation coefficient
         p - the p-value
@@ -163,7 +163,7 @@ def strata_correlation(ind: NDArray, v1: NDArray, v2: NDArray) -> StrataCorrelat
     return strata_fun(_strata_correlation, ind=ind, v1=v1, v2=v2)
 
 
-def strata_linear_regression(ind: NDArray, v1: NDArray, v2: NDArray) -> StrataLinearRegressionResult:
+def strata_linear_regression(ind: NDArray, v1: NDArray, v2: NDArray) -> LinearRegressionResult:
     """
     Perform a linear regression in each stratum.
 
@@ -176,7 +176,7 @@ def strata_linear_regression(ind: NDArray, v1: NDArray, v2: NDArray) -> StrataLi
 
     Returns
     -------
-    StrataLinearRegressionResult
+    LinearRegressionResult
         The result of the linear regression in each stratum.
         a - the slope
         b - the intercept

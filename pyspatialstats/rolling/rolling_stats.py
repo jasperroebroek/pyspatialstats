@@ -42,7 +42,7 @@ def rolling_sum(
     shape = np.asarray(a.shape)
 
     window = define_window(window)
-    validate_window(window, shape, reduce)
+    validate_window(window, shape, reduce, allow_even=True)
 
     window_shape = np.asarray(window.get_shape(a.ndim))
 
@@ -113,7 +113,7 @@ def rolling_mean(
     shape = np.asarray(a.shape)
 
     window = define_window(window)
-    validate_window(window, shape, reduce)
+    validate_window(window, shape, reduce, allow_even=True)
 
     window_shape = np.asarray(window.get_shape(a.ndim))
 

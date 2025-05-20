@@ -3,7 +3,7 @@
 # cython: wraparound=False
 
 from pyspatialstats.stat_utils import calculate_p_value
-from pyspatialstats.results import GroupedCorrelationResult
+from pyspatialstats.results import CorrelationResult
 
 cimport numpy as cnp
 from libc.math cimport sqrt, isnan, NAN
@@ -12,22 +12,22 @@ from libc.stdlib cimport calloc, free, malloc
 from pyspatialstats.grouped_stats.core.count cimport _define_max_ind, _grouped_count
 
 
-cdef CyGroupedCorrelationResult _grouped_correlation(size_t[:] ind, float[:] v1, float[:] v2, size_t max_ind) except * nogil: 
+cdef CyGroupedCorrelationResult _grouped_correlation(size_t[:] ind, double[:] v1, double[:] v2, size_t max_ind) except * nogil: 
     cdef:
         size_t i, k, n = ind.shape[0]
-        long *count = <long *> calloc(max_ind + 1, sizeof(long))
-        float *sum_v1 = <float *> calloc(max_ind + 1, sizeof(float))
-        float *sum_v2 = <float *> calloc(max_ind + 1, sizeof(float))
-        float *sum_v1_v2 = <float *> calloc(max_ind + 1, sizeof(float))
-        float *sum_v1_squared = <float *> calloc(max_ind + 1, sizeof(float))
-        float *sum_v2_squared = <float *> calloc(max_ind + 1, sizeof(float))
-        float *num = <float *> calloc(max_ind + 1, sizeof(float))
-        float *den = <float *> calloc(max_ind + 1, sizeof(float))
+        size_t *count = <size_t *> calloc(max_ind + 1, sizeof(size_t))
+        double *sum_v1 = <double *> calloc(max_ind + 1, sizeof(double))
+        double *sum_v2 = <double *> calloc(max_ind + 1, sizeof(double))
+        double *sum_v1_v2 = <double *> calloc(max_ind + 1, sizeof(double))
+        double *sum_v1_squared = <double *> calloc(max_ind + 1, sizeof(double))
+        double *sum_v2_squared = <double *> calloc(max_ind + 1, sizeof(double))
+        double *num = <double *> calloc(max_ind + 1, sizeof(double))
+        double *den = <double *> calloc(max_ind + 1, sizeof(double))
         CyGroupedCorrelationResult result
 
-    result.c = <float *> calloc(max_ind + 1, sizeof(float))
-    result.t = <float *> calloc(max_ind + 1, sizeof(float))
-    result.df = <long *> calloc(max_ind + 1, sizeof(long))
+    result.c = <double *> calloc(max_ind + 1, sizeof(double))
+    result.t = <double *> calloc(max_ind + 1, sizeof(double))
+    result.df = <size_t *> calloc(max_ind + 1, sizeof(size_t))
 
     if (
         count == NULL or
@@ -107,7 +107,7 @@ cdef CyGroupedCorrelationResult _grouped_correlation(size_t[:] ind, float[:] v1,
     return result
 
 
-def grouped_correlation_npy(size_t[:] ind, float[:] v1, float[:] v2) -> GroupedCorrelationResult:
+def grouped_correlation_npy(size_t[:] ind, double[:] v1, double[:] v2) -> GroupedCorrelationResult:
     cdef:
         CyGroupedCorrelationResult r
         size_t max_ind
@@ -117,13 +117,13 @@ def grouped_correlation_npy(size_t[:] ind, float[:] v1, float[:] v2) -> GroupedC
             max_ind = _define_max_ind(ind)
             r = _grouped_correlation(ind, v1, v2, max_ind)
 
-        corr_arr = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_FLOAT, r.c)
+        corr_arr = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.c)
         cnp.PyArray_ENABLEFLAGS(corr_arr, cnp.NPY_ARRAY_OWNDATA)
 
-        t_arr = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_FLOAT, r.t)
-        df_arr = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_LONG, r.df)
+        t_arr = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.t)
+        df_arr = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_UINTP, r.df)
 
-        py_r = GroupedCorrelationResult(corr_arr, calculate_p_value(t_arr, df_arr))
+        py_r = CorrelationResult(corr_arr, calculate_p_value(t_arr, df_arr))
 
     finally:
         free(r.t)
@@ -132,12 +132,12 @@ def grouped_correlation_npy(size_t[:] ind, float[:] v1, float[:] v2) -> GroupedC
     return py_r
 
 
-def grouped_correlation_npy_filtered(size_t[:] ind, float[:] v1, float[:] v2) -> GroupedCorrelationResult:
+def grouped_correlation_npy_filtered(size_t[:] ind, double[:] v1, double[:] v2) -> GroupedCorrelationResult:
     cdef:
         CyGroupedCorrelationResult r
         size_t i, max_ind, c = 0, num_inds = 0
-        long *count_v1, *count_v2, *df_f
-        float *c_f, *t_f
+        size_t *count_v1, *count_v2, *df_f
+        double *c_f, *t_f
 
     try:
         with nogil:
@@ -150,9 +150,9 @@ def grouped_correlation_npy_filtered(size_t[:] ind, float[:] v1, float[:] v2) ->
                 if count_v1[i] > 0 and count_v2[i] > 0:
                     num_inds += 1
 
-            c_f = <float *> malloc(num_inds * sizeof(float))
-            t_f = <float *> malloc(num_inds * sizeof(float))
-            df_f = <long *> malloc(num_inds * sizeof(long))
+            c_f = <double *> malloc(num_inds * sizeof(double))
+            t_f = <double *> malloc(num_inds * sizeof(double))
+            df_f = <size_t *> malloc(num_inds * sizeof(size_t))
 
             if c_f == NULL or t_f == NULL or df_f == NULL:
                 with gil:
@@ -165,13 +165,13 @@ def grouped_correlation_npy_filtered(size_t[:] ind, float[:] v1, float[:] v2) ->
                     df_f[c] = r.df[i]
                     c += 1
 
-        corr_arr = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_FLOAT, c_f)
+        corr_arr = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_DOUBLE, c_f)
         cnp.PyArray_ENABLEFLAGS(corr_arr, cnp.NPY_ARRAY_OWNDATA)
 
-        t_arr = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_FLOAT, t_f)
-        df_arr = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_LONG, df_f)
+        t_arr = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_DOUBLE, t_f)
+        df_arr = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_UINTP, df_f)
 
-        py_r = GroupedCorrelationResult(corr_arr, calculate_p_value(t_arr, df_arr))
+        py_r = CorrelationResult(corr_arr, calculate_p_value(t_arr, df_arr))
 
     except MemoryError:
         free(c_f)

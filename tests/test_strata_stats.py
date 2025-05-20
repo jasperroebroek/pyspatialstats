@@ -12,22 +12,10 @@ from pyspatialstats.strata_stats.strata_stats import (
     strata_std,
 )
 
-rs = np.random.RandomState(0)
-
-
-@pytest.fixture
-def ind():
-    return rs.randint(0, 5, size=(10, 10), dtype=np.uintp)
-
-
-@pytest.fixture
-def v():
-    return rs.rand(10, 10)
-
 
 def test_strata_min(ind, v):
     r = strata_min(ind, v)
-    expected_result = np.full_like(ind, np.nan, dtype=np.float32)
+    expected_result = np.full_like(ind, np.nan, dtype=np.float64)
 
     for i in range(1, int(ind.max()) + 1):
         mask = ind == i
@@ -40,7 +28,7 @@ def test_strata_min(ind, v):
 
 def test_strata_min_1D():
     ind = np.array([], dtype=np.uintp)
-    v = np.array([], dtype=np.float32)
+    v = np.array([], dtype=np.float64)
     with pytest.raises(IndexError):
         min_v = strata_min(ind, v)
 
@@ -48,7 +36,7 @@ def test_strata_min_1D():
 # Test with empty arrays
 def test_strata_min_empty():
     ind = np.array([[]], dtype=np.uintp)
-    v = np.array([[]], dtype=np.float32)
+    v = np.array([[]], dtype=np.float64)
     min_v = strata_min(ind, v)
     assert min_v.size == 0
 
@@ -56,7 +44,7 @@ def test_strata_min_empty():
 # Test with all NaNs
 def test_strata_min_all_nans():
     ind = np.ones((10, 10), dtype=np.uintp)
-    v = np.full((10, 10), np.nan, dtype=np.float32)
+    v = np.full((10, 10), np.nan, dtype=np.float64)
     min_v = strata_min(ind, v)
     assert (~np.isnan(min_v)).sum() == 0
 
@@ -64,14 +52,14 @@ def test_strata_min_all_nans():
 # Test with a single group
 def test_strata_min_single_group():
     ind = np.ones((10, 10), dtype=np.uintp)
-    v = np.arange(100, dtype=np.float32).reshape((10, 10))
+    v = np.arange(100, dtype=np.float64).reshape((10, 10))
     min_v = strata_min(ind, v)
     assert np.all(min_v == v.min())
 
 
 def test_strata_max(ind, v):
     r = strata_max(ind, v)
-    expected_result = np.full_like(ind, np.nan, dtype=np.float32)
+    expected_result = np.full_like(ind, np.nan, dtype=np.float64)
 
     for i in range(1, int(ind.max()) + 1):
         mask = ind == i
@@ -84,7 +72,7 @@ def test_strata_max(ind, v):
 
 def test_strata_mean(ind, v):
     r = strata_mean(ind, v)
-    expected_result = np.full_like(ind, np.nan, dtype=np.float32)
+    expected_result = np.full_like(ind, np.nan, dtype=np.float64)
 
     for i in range(1, int(ind.max()) + 1):
         mask = ind == i
@@ -97,7 +85,7 @@ def test_strata_mean(ind, v):
 
 def test_strata_std(ind, v):
     r = strata_std(ind, v)
-    expected_result = np.full_like(ind, np.nan, dtype=np.float32)
+    expected_result = np.full_like(ind, np.nan, dtype=np.float64)
 
     for i in range(1, int(ind.max()) + 1):
         mask = ind == i
@@ -110,8 +98,8 @@ def test_strata_std(ind, v):
 
 def test_strata_mean_std(ind, v):
     r = strata_mean_std(ind, v)
-    expected_mean = np.full_like(ind, np.nan, dtype=np.float32)
-    expected_std = np.full_like(ind, np.nan, dtype=np.float32)
+    expected_mean = np.full_like(ind, np.nan, dtype=np.float64)
+    expected_std = np.full_like(ind, np.nan, dtype=np.float64)
 
     for i in range(1, int(ind.max()) + 1):
         mask = ind == i
@@ -123,13 +111,10 @@ def test_strata_mean_std(ind, v):
     assert np.allclose(expected_std, r.std, equal_nan=True)
 
 
-def test_strata_correlation(ind):
-    v1 = rs.rand(10, 10)
-    v2 = rs.rand(10, 10)
-
+def test_strata_correlation(ind, v1, v2):
     r = strata_correlation(ind, v1, v2)
-    expected_c = np.full_like(ind, np.nan, dtype=np.float32)
-    expected_p = np.full_like(ind, np.nan, dtype=np.float32)
+    expected_c = np.full_like(ind, np.nan, dtype=np.float64)
+    expected_p = np.full_like(ind, np.nan, dtype=np.float64)
 
     for i in range(1, int(ind.max()) + 1):
         mask = ind == i
@@ -146,14 +131,11 @@ def test_strata_correlation(ind):
     assert np.allclose(expected_p, r.p, equal_nan=True, atol=1e-5)
 
 
-def test_strata_linear_regression(ind):
-    v1 = rs.rand(10, 10)
-    v2 = rs.rand(10, 10)
-
+def test_strata_linear_regression(ind, v1, v2):
     r = strata_linear_regression(ind, v1, v2)
-    expected_a = np.full_like(ind, np.nan, dtype=np.float32)
-    expected_b = np.full_like(ind, np.nan, dtype=np.float32)
-    expected_p_a = np.full_like(ind, np.nan, dtype=np.float32)
+    expected_a = np.full_like(ind, np.nan, dtype=np.float64)
+    expected_b = np.full_like(ind, np.nan, dtype=np.float64)
+    expected_p_a = np.full_like(ind, np.nan, dtype=np.float64)
 
     for i in range(1, int(ind.max()) + 1):
         mask = ind == i

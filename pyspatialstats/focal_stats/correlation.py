@@ -4,23 +4,30 @@ import numpy as np
 from numpydantic import NDArray
 from pydantic import validate_call
 
-from pyspatialstats.focal_stats.core.correlation import _focal_correlation
-from pyspatialstats.types import Fraction, Mask, PositiveInt, RasterFloat64
-from pyspatialstats.utils import parse_raster, timeit
+from pyspatialstats.focal_stats.core.correlation import (
+    CyFocalCorrelationResult,
+    _focal_correlation,
+)
+from pyspatialstats.results import CorrelationResult
+from pyspatialstats.rolling import rolling_window
+from pyspatialstats.stat_utils import calculate_p_value
+from pyspatialstats.types import Fraction, Mask, PositiveInt
+from pyspatialstats.utils import create_output_array, parse_raster, timeit
 from pyspatialstats.windows import Window, define_window, validate_window
 
 
 @validate_call(config={"arbitrary_types_allowed": True})
 @timeit
 def focal_correlation(
-    a: NDArray,
-    b: NDArray,
+    a1: NDArray,
+    a2: NDArray,
     *,
     window: PositiveInt | Sequence[PositiveInt] | Mask | Window = 5,
     fraction_accepted: Fraction = 0.7,
     verbose: bool = False,  # noqa
     reduce: bool = False,
-) -> RasterFloat64:
+    p_values: bool = False,
+) -> CorrelationResult:
     """
     Focal correlation
 
@@ -52,27 +59,44 @@ def focal_correlation(
         input raster, while if ``reduce`` is True, the output is reduced by the window size:
         ``raster_shape // window_shape``.
     """
-    a = parse_raster(a)
-    b = parse_raster(b)
+    a1 = parse_raster(a1)
+    a2 = parse_raster(a2)
 
-    raster_shape = np.asarray(a.shape)
-
-    if a.shape != b.shape:
-        raise ValueError(f"Input arrays have different shapes: {a.shape=}, {b.shape=}")
+    if a1.shape != a2.shape:
+        raise ValueError(
+            f"Input arrays have different shapes: {a1.shape=}, {a2.shape=}"
+        )
 
     window = define_window(window)
-    validate_window(window, raster_shape, reduce, allow_even=False)
-
+    validate_window(window, a1.shape, reduce, allow_even=False)
     mask = window.get_mask(2)
-    window_shape = np.asarray(window.get_shape(2), dtype=np.int32)
 
-    corr = _focal_correlation(
-        a,
-        b,
-        window_shape=window_shape,
-        mask=mask,
-        fraction_accepted=fraction_accepted,
+    fringes = window.get_fringes(reduce)
+    ind_inner = window.get_ind_inner(reduce)
+    threshold = fraction_accepted * mask.sum()
+
+    df = create_output_array(a1, window.get_shape(), reduce, dtype=np.uintp)
+    c = create_output_array(a1, window.get_shape(), reduce)
+
+    r = CyFocalCorrelationResult(df=df[ind_inner], c=c[ind_inner])
+
+    a1_windowed = rolling_window(a1, window=window.get_shape(), reduce=reduce)
+    a2_windowed = rolling_window(a2, window=window.get_shape(), reduce=reduce)
+
+    _focal_correlation(
+        a1_windowed,
+        a2_windowed,
+        mask=window.get_mask(),
+        r=r,
+        fringe=fringes,
+        threshold=threshold,
         reduce=reduce,
     )
 
-    return np.asarray(corr)
+    if p_values:
+        t = c * np.sqrt(df) / np.sqrt(1 - c**2)
+        p = calculate_p_value(t, df)
+    else:
+        p = None
+
+    return CorrelationResult(c=c, p=p)

@@ -27,9 +27,9 @@ def rolling_window(
         Input array
     window : int, array_like, Window
         Window that is applied over ``a``. It can be an integer or a sequence of integers, which will be interpreted as
-        a rectangular window, a mask or a :class:`pyspatialstats.window.Window` object. If a mask is provided, its
-        raster_shape will be used to flatten ``a``, resulting in dimensionality ``a.ndim + 1`` as the final result,
-        just as in the case of ``flatten`` is True.
+        a rectangular window, a mask or a :class:`pyspatialstats.window.Window` object. If a mask is provided (or a
+        Window that is masked, its shape will be used to flatten ``a``, resulting in dimensionality ``a.ndim + 1`` as
+        the final result, just as in the case of ``flatten`` is True.
     flatten : bool, optional
         Flag to flatten the windowed view to 1 dimension. The raster_shape of the returned array if set to True will be:
 
@@ -58,8 +58,11 @@ def rolling_window(
 
     Returns
     -------
-    :obj:`~numpy.ndarray`
-        windowed array of the data
+    view :obj:`~numpy.ndarray`
+        Sliding window view of the array. The sliding window dimensions are inserted at the end, and the original
+        dimensions are trimmed as required by the size of the sliding window. That is,
+        view.shape = x_shape_trimmed + window_shape, where x_shape_trimmed is x.shape with every entry reduced by one
+        less than the corresponding window size. If ``flatten`` is True, the window is flattended to one dimension.
 
     Raises
     ------
@@ -72,7 +75,7 @@ def rolling_window(
     strides = np.asarray(a.strides)
 
     window = define_window(window)
-    validate_window(window, shape, reduce)
+    validate_window(window, shape, reduce, allow_even=True)
 
     window_shape = np.asarray(window.get_shape(a.ndim))
 

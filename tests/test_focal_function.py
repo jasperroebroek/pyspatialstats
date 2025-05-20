@@ -15,8 +15,8 @@ def mean_fun_t(x: np.ndarray, key: str) -> Dict[str, float]:
         return {key: np.nanmean(x).item()}
 
 
-def test_focal_function():
-    inputs = {"x": np.random.rand(10, 10)}
+def test_focal_function(rs):
+    inputs = {"x": rs.random((10, 10))}
     outputs = {"y": np.full((2, 2), np.nan)}
 
     focal_function(mean_fun_t, inputs, outputs, window=5, reduce=True, key="y")
@@ -26,14 +26,14 @@ def test_focal_function():
     np.allclose(m, outputs["y"], equal_nan=True)
 
 
-def test_focal_function_keyword_only():
+def test_focal_function_keyword_only(rs):
     def _mean_fun_t_keyword_only(*, x: np.ndarray, key: str) -> Dict[str, float]:
         """Mean of first output is fed to the first output"""
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             return {key: np.nanmean(x).item()}
 
-    inputs = {"x": np.random.rand(10, 10)}
+    inputs = {"x": rs.random((10, 10))}
     outputs = {"y": np.full((2, 2), np.nan)}
 
     focal_function(
@@ -41,8 +41,8 @@ def test_focal_function_keyword_only():
     )
 
 
-def test_window_definition_errors():
-    inputs = {"x": np.random.rand(10, 10)}
+def test_window_definition_errors(rs):
+    inputs = {"x": rs.random((10, 10))}
     outputs = {"y": np.full((10, 10), np.nan)}
 
     with pytest.raises(ValueError):
@@ -56,4 +56,5 @@ def test_window_definition_errors():
 
 
 def test_dimension_errors():
+    # todo
     pass

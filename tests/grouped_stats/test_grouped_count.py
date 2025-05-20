@@ -1,28 +1,17 @@
 import numpy as np
-import pytest
 
 from pyspatialstats.grouped_stats import define_max_ind, grouped_count, grouped_count_pd
 
-rs = np.random.RandomState(0)
 
-
-@pytest.fixture
-def ind():
-    return rs.randint(0, 5, size=(10, 10), dtype=np.uintp)
-
-
-# Test calculate_count function
 def test_count(ind):
-    v = np.ones_like(ind, dtype=np.float32)
+    v = np.ones_like(ind, dtype=np.float64)
     max_ind = define_max_ind(ind)
 
     count_v = grouped_count(ind, v)
 
-    # Check that the counts are correct
     for i in range(1, max_ind + 1):
         assert count_v[i] == (ind == i).sum()
 
-    # Check that counts for group 0 are zero
     assert count_v[0] == 0
 
 
@@ -40,7 +29,7 @@ def test_count_all_group_1():
     assert count[1] == ind.size
 
 
-def test_count_nans(ind):
+def test_count_nans(rs, ind):
     v = rs.random(ind.shape)
     for i in (0, 2, 8):
         v[i, i] = np.nan
@@ -57,7 +46,7 @@ def test_count_nans(ind):
     assert count_v[0] == 0
 
 
-def test_count_df(ind):
+def test_count_df(rs, ind):
     v = rs.random(ind.shape)
     for i in (0, 2, 8):
         v[i, i] = np.nan
@@ -65,7 +54,7 @@ def test_count_df(ind):
     max_ind = define_max_ind(ind)
 
     df = grouped_count_pd(ind, v)
-    assert df.columns == ['count']
+    assert df.columns == ["count"]
 
     # Check that the counts are correct
     for i in range(1, max_ind + 1):

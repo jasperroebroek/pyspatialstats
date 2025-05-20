@@ -1,26 +1,21 @@
 import pandas as pd
 from numpydantic import Shape
-from numpydantic.dtype import Float32, Int64
+from numpydantic.dtype import Float64, Int64
 from numpydantic.ndarray import NDArray
 
 from pyspatialstats.grouped_stats.core.correlation import (
-    GroupedCorrelationResult,
+    CorrelationResult,
     grouped_correlation_npy,
     grouped_correlation_npy_filtered,
 )
-from pyspatialstats.grouped_stats.core.linear_regression import (
-    GroupedLinearRegressionResult,
-    grouped_linear_regression_npy,
-    grouped_linear_regression_npy_filtered,
-)
-from pyspatialstats.grouped_stats.core.std import (
-    grouped_std_npy,
-    grouped_std_npy_filtered,
-)
-from pyspatialstats.grouped_stats.utils import generate_index, grouped_fun, grouped_fun_pd, parse_array
 from pyspatialstats.grouped_stats.core.count import (
     grouped_count_npy,
     grouped_count_npy_filtered,
+)
+from pyspatialstats.grouped_stats.core.linear_regression import (
+    LinearRegressionResult,
+    grouped_linear_regression_npy,
+    grouped_linear_regression_npy_filtered,
 )
 from pyspatialstats.grouped_stats.core.max import (
     grouped_max_npy,
@@ -34,9 +29,19 @@ from pyspatialstats.grouped_stats.core.min import (
     grouped_min_npy,
     grouped_min_npy_filtered,
 )
+from pyspatialstats.grouped_stats.core.std import (
+    grouped_std_npy,
+    grouped_std_npy_filtered,
+)
+from pyspatialstats.grouped_stats.utils import (
+    generate_index,
+    grouped_fun,
+    grouped_fun_pd,
+    parse_array,
+)
 
 
-def grouped_max(ind: NDArray, v: NDArray) -> NDArray[Shape["*"], Float32]:
+def grouped_max(ind: NDArray, v: NDArray) -> NDArray[Shape["*"], Float64]:
     """
     Compute the maximum of each stratum.
 
@@ -74,7 +79,7 @@ def grouped_max_pd(ind: NDArray, v: NDArray) -> pd.DataFrame:
     return grouped_fun_pd(grouped_max_npy_filtered, name="maximum", ind=ind, v=v)
 
 
-def grouped_min(ind: NDArray, v: NDArray) -> NDArray[Shape["*"], Float32]:
+def grouped_min(ind: NDArray, v: NDArray) -> NDArray[Shape["*"], Float64]:
     """
     Compute the minimum of each stratum.
 
@@ -150,7 +155,7 @@ def grouped_count_pd(ind: NDArray, v: NDArray) -> pd.DataFrame:
     return grouped_fun_pd(grouped_count_npy_filtered, name="count", ind=ind, v=v)
 
 
-def grouped_mean(ind: NDArray, v: NDArray) -> NDArray[Shape["*"], Float32]:
+def grouped_mean(ind: NDArray, v: NDArray) -> NDArray[Shape["*"], Float64]:
     """
     Compute the mean of each stratum.
 
@@ -188,7 +193,7 @@ def grouped_mean_pd(ind: NDArray, v: NDArray) -> pd.DataFrame:
     return grouped_fun_pd(grouped_mean_npy_filtered, name="mean", ind=ind, v=v)
 
 
-def grouped_std(ind: NDArray, v: NDArray) -> NDArray[Shape["*"], Float32]:
+def grouped_std(ind: NDArray, v: NDArray) -> NDArray[Shape["*"], Float64]:
     """
     Compute the standard deviation of each stratum.
 
@@ -255,7 +260,9 @@ def grouped_mean_std_pd(ind: NDArray, v: NDArray) -> pd.DataFrame:
     return pd.DataFrame(data={"mean": mean_v, "std": std_v}, index=index)
 
 
-def grouped_correlation(ind: NDArray, v1: NDArray, v2: NDArray) -> GroupedCorrelationResult:
+def grouped_correlation(
+    ind: NDArray, v1: NDArray, v2: NDArray
+) -> CorrelationResult:
     """
     Compute the correlation of each stratum.
 
@@ -294,10 +301,14 @@ def grouped_correlation_pd(ind: NDArray, v1: NDArray, v2: NDArray) -> pd.DataFra
         * c: the correlation coefficient
         * p: the p-value
     """
-    return grouped_fun_pd(grouped_correlation_npy_filtered, name="correlation", ind=ind, v1=v1, v2=v2)
+    return grouped_fun_pd(
+        grouped_correlation_npy_filtered, name="correlation", ind=ind, v1=v1, v2=v2
+    )
 
 
-def grouped_linear_regression(ind: NDArray, v1: NDArray, v2: NDArray) -> GroupedLinearRegressionResult:
+def grouped_linear_regression(
+    ind: NDArray, v1: NDArray, v2: NDArray
+) -> LinearRegressionResult:
     """
     Compute the linear regression of each stratum.
 
@@ -325,7 +336,9 @@ def grouped_linear_regression(ind: NDArray, v1: NDArray, v2: NDArray) -> Grouped
     return grouped_fun(grouped_linear_regression_npy, ind=ind, v1=v1, v2=v2)
 
 
-def grouped_linear_regression_pd(ind: NDArray, v1: NDArray, v2: NDArray) -> pd.DataFrame:
+def grouped_linear_regression_pd(
+    ind: NDArray, v1: NDArray, v2: NDArray
+) -> pd.DataFrame:
     """
     Compute the linear regression of each stratum in a pandas DataFrame.
 
@@ -349,4 +362,6 @@ def grouped_linear_regression_pd(ind: NDArray, v1: NDArray, v2: NDArray) -> pd.D
         * p_a: the p-value of the slope
         * p_b: the p-value of the intercept
     """
-    return grouped_fun_pd(grouped_linear_regression_npy_filtered, name="lr", ind=ind, v1=v1, v2=v2)
+    return grouped_fun_pd(
+        grouped_linear_regression_npy_filtered, name="lr", ind=ind, v1=v1, v2=v2
+    )

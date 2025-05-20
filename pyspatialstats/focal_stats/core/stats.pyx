@@ -4,7 +4,7 @@
 
 import numpy as np
 
-from pyspatialstats.focal_stats.core.iteration_params cimport define_iter_params, IterParams
+from pyspatialstats.focal_stats.core.iteration cimport define_iter_params, IterParams
 
 cimport numpy as np
 from libc.math cimport isnan, sqrt, NAN

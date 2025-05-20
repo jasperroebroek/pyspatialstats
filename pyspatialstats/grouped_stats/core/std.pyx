@@ -13,12 +13,12 @@ from pyspatialstats.grouped_stats.core.count cimport _define_max_ind, _grouped_c
 from pyspatialstats.grouped_stats.core.mean cimport _grouped_mean
 
 
-cdef float* _grouped_std(size_t[:] ind, float[:] v, float *mean_v, size_t max_ind) nogil:
+cdef double* _grouped_std(size_t[:] ind, double[:] v, double *mean_v, size_t max_ind) nogil:
     cdef:
         size_t i, k, n = ind.shape[0]
-        long *num_v = <long *> calloc(max_ind + 1, sizeof(long))
-        float *dev_v = <float *> calloc(max_ind + 1, sizeof(float))
-        float *std_v = dev_v
+        size_t *num_v = <size_t *> calloc(max_ind + 1, sizeof(size_t))
+        double *dev_v = <double *> calloc(max_ind + 1, sizeof(double))
+        double *std_v = dev_v
 
     if num_v == NULL or dev_v == NULL:
         free(num_v)
@@ -44,9 +44,9 @@ cdef float* _grouped_std(size_t[:] ind, float[:] v, float *mean_v, size_t max_in
     return dev_v
 
 
-def grouped_std_npy(size_t[:] ind, float[:] v) -> np.ndarray:
+def grouped_std_npy(size_t[:] ind, double[:] v) -> np.ndarray:
     cdef:
-        float *mean_v, *r
+        double *mean_v, *r
         size_t max_ind
 
     try:
@@ -55,7 +55,7 @@ def grouped_std_npy(size_t[:] ind, float[:] v) -> np.ndarray:
             mean_v = _grouped_mean(ind, v, max_ind)
             r = _grouped_std(ind, v, mean_v, max_ind)
 
-        result_array = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_FLOAT, r)
+        result_array = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r)
         cnp.PyArray_ENABLEFLAGS(result_array, cnp.NPY_ARRAY_OWNDATA)
 
     finally:
@@ -64,11 +64,11 @@ def grouped_std_npy(size_t[:] ind, float[:] v) -> np.ndarray:
     return result_array
 
 
-def grouped_std_npy_filtered(size_t[:] ind, float[:] v) -> np.ndarray:
+def grouped_std_npy_filtered(size_t[:] ind, double[:] v) -> np.ndarray:
     cdef:
         size_t i, max_ind, c = 0, num_inds = 0
-        long *count_v
-        float *r_v, *mean_v, *rf_v
+        size_t *count_v
+        double *r_v, *mean_v, *rf_v
 
     try:
         with nogil:
@@ -81,7 +81,7 @@ def grouped_std_npy_filtered(size_t[:] ind, float[:] v) -> np.ndarray:
                 if count_v[i] > 0:
                     num_inds += 1
 
-            rf_v = <float *> malloc(num_inds * sizeof(float))
+            rf_v = <double *> malloc(num_inds * sizeof(double))
 
             if rf_v == NULL:
                 with gil:
@@ -92,7 +92,7 @@ def grouped_std_npy_filtered(size_t[:] ind, float[:] v) -> np.ndarray:
                     rf_v[c] = r_v[i]
                     c += 1
 
-        result_array = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_FLOAT, rf_v)
+        result_array = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_DOUBLE, rf_v)
         cnp.PyArray_ENABLEFLAGS(result_array, cnp.NPY_ARRAY_OWNDATA)
 
     finally:

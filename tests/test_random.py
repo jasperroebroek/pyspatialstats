@@ -33,6 +33,6 @@ def test_randints_with_numpy():
     n = 10000
 
     cy_values = RandomInts(seed=0).np_randints(bound, n)
-    np_values = np.random.default_rng(0).integers(low=0, high=bound, size=n)
+    np_values = np.random.default_rng(seed=0).integers(low=0, high=bound, size=n)
 
     np.testing.assert_array_equal(cy_values, np_values)

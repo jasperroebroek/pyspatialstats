@@ -6,16 +6,24 @@ from setuptools.extension import Extension
 extensions = [
     ### FOCAL STATS
     Extension(
-        "pyspatialstats.focal_stats.core.iteration_params",
-        ["pyspatialstats/focal_stats/core/iteration_params.pyx"],
+        "pyspatialstats.focal_stats.core.iteration",
+        ["pyspatialstats/focal_stats/core/iteration.pyx"],
     ),
     Extension(
         "pyspatialstats.focal_stats.core.correlation",
         ["pyspatialstats/focal_stats/core/correlation.pyx"],
     ),
     Extension(
+        "pyspatialstats.focal_stats.core.linear_regression",
+        ["pyspatialstats/focal_stats/core/linear_regression.pyx"],
+    ),
+    Extension(
         "pyspatialstats.focal_stats.core.stats",
         ["pyspatialstats/focal_stats/core/stats.pyx"],
+    ),
+    Extension(
+        "pyspatialstats.focal_stats.core.mean",
+        ["pyspatialstats/focal_stats/core/mean.pyx"],
     ),
     ### GROUPED STATS
     Extension(
@@ -56,15 +64,16 @@ extensions = [
         "pyspatialstats.random.random",
         ["pyspatialstats/random/random.pyx"],
     ),
-    ### BOOTSTRAP
+    ### STATS + BOOTSTRAP
     Extension(
-        "pyspatialstats.bootstrap.mean",
-        ["pyspatialstats/bootstrap/mean.pyx"],
+        "pyspatialstats.stats.mean",
+        ["pyspatialstats/stats/mean.pyx"],
     ),
 ]
+
 
 setup(
     packages=find_packages(),
     ext_modules=cythonize(extensions),
-    include_dirs=[numpy.get_include()],
+    include_dirs=[numpy.get_include()]
 )

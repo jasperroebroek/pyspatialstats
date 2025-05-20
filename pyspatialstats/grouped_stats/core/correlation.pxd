@@ -1,6 +1,5 @@
 cdef struct CyGroupedCorrelationResult:
-    float *c
-    float *t
-    long *df
+    double *c, *t
+    size_t *df
 
-cdef CyGroupedCorrelationResult _grouped_correlation(size_t[:] ind, float[:] v1, float[:] v2, size_t max_ind) except * nogil
+cdef CyGroupedCorrelationResult _grouped_correlation(size_t[:] ind, double[:] v1, double[:] v2, size_t max_ind) except * nogil

@@ -3,7 +3,7 @@
 # cython: wraparound=False
 
 from pyspatialstats.stat_utils import calculate_p_value
-from pyspatialstats.results import GroupedLinearRegressionResult
+from pyspatialstats.results import LinearRegressionResult
 
 from libc.math cimport sqrt, isnan, NAN, pow
 from libc.stdlib cimport malloc, calloc, free
@@ -13,29 +13,29 @@ from pyspatialstats.grouped_stats.core.count cimport _define_max_ind, _grouped_c
 
 
 cdef CyGroupedLinearRegressionResult _grouped_linear_regression(size_t[:] ind,
-                                                                float[:] v1,
-                                                                float[:] v2,
+                                                                double[:] v1,
+                                                                double[:] v2,
                                                                 size_t max_ind) except * nogil:
     cdef:
         size_t i, k, n = ind.shape[0]
-        float residual
-        long *count = <long *> calloc(max_ind + 1, sizeof(long))
-        float *sum_v1 = <float *> calloc(max_ind + 1, sizeof(float))
-        float *sum_v2 = <float *> calloc(max_ind + 1, sizeof(float))
-        float *sum_v1_v2 = <float *> calloc(max_ind + 1, sizeof(float))
-        float *sum_v1_squared = <float *> calloc(max_ind + 1, sizeof(float))
-        float *sum_residuals_squared = <float *> calloc(max_ind + 1, sizeof(float))
-        float *se = <float *> calloc(max_ind + 1, sizeof(float))
-        float *ss_v1_residuals = <float *> calloc(max_ind + 1, sizeof(float))
+        double residual
+        size_t *count = <size_t *> calloc(max_ind + 1, sizeof(size_t))
+        double *sum_v1 = <double *> calloc(max_ind + 1, sizeof(double))
+        double *sum_v2 = <double *> calloc(max_ind + 1, sizeof(double))
+        double *sum_v1_v2 = <double *> calloc(max_ind + 1, sizeof(double))
+        double *sum_v1_squared = <double *> calloc(max_ind + 1, sizeof(double))
+        double *sum_residuals_squared = <double *> calloc(max_ind + 1, sizeof(double))
+        double *se = <double *> calloc(max_ind + 1, sizeof(double))
+        double *ss_v1_residuals = <double *> calloc(max_ind + 1, sizeof(double))
         CyGroupedLinearRegressionResult result
 
-    result.a = <float *> calloc(max_ind + 1, sizeof(float))
-    result.b = <float *> calloc(max_ind + 1, sizeof(float))
-    result.se_a = <float *> calloc(max_ind + 1, sizeof(float))
-    result.se_b = <float *> calloc(max_ind + 1, sizeof(float))
-    result.t_a = <float *> calloc(max_ind + 1, sizeof(float))
-    result.t_b = <float *> calloc(max_ind + 1, sizeof(float))
-    result.df = <long *> calloc(max_ind + 1, sizeof(long))
+    result.a = <double *> calloc(max_ind + 1, sizeof(double))
+    result.b = <double *> calloc(max_ind + 1, sizeof(double))
+    result.se_a = <double *> calloc(max_ind + 1, sizeof(double))
+    result.se_b = <double *> calloc(max_ind + 1, sizeof(double))
+    result.t_a = <double *> calloc(max_ind + 1, sizeof(double))
+    result.t_b = <double *> calloc(max_ind + 1, sizeof(double))
+    result.df = <size_t *> calloc(max_ind + 1, sizeof(size_t))
 
     result.a[0] = result.b[0] = result.se_a[0] = result.se_b[0] = result.t_a[0] = result.t_b[0] = NAN
 
@@ -144,7 +144,7 @@ cdef CyGroupedLinearRegressionResult _grouped_linear_regression(size_t[:] ind,
     return result
 
 
-def grouped_linear_regression_npy(size_t[:] ind, float[:] v1, float[:] v2) -> GroupedLinearRegressionResult:
+def grouped_linear_regression_npy(size_t[:] ind, double[:] v1, double[:] v2) -> GroupedLinearRegressionResult:
     cdef:
         CyGroupedLinearRegressionResult r
         size_t max_ind
@@ -154,13 +154,13 @@ def grouped_linear_regression_npy(size_t[:] ind, float[:] v1, float[:] v2) -> Gr
             max_ind = _define_max_ind(ind)
             r = _grouped_linear_regression(ind, v1, v2, max_ind)
 
-        a = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_FLOAT, r.a)
-        b = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_FLOAT, r.b)
-        se_a = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_FLOAT, r.se_a)
-        se_b = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_FLOAT, r.se_b)
-        t_a = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_FLOAT, r.t_a)
-        t_b = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_FLOAT, r.t_b)
-        df = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_LONG, r.df)
+        a = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.a)
+        b = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.b)
+        se_a = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.se_a)
+        se_b = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.se_b)
+        t_a = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.t_a)
+        t_b = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.t_b)
+        df = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_UINTP, r.df)
 
         for x in (a, b, se_a,  se_b, t_a, t_b):
             cnp.PyArray_ENABLEFLAGS(x, cnp.NPY_ARRAY_OWNDATA)
@@ -171,15 +171,15 @@ def grouped_linear_regression_npy(size_t[:] ind, float[:] v1, float[:] v2) -> Gr
     finally:
         free(r.df)
 
-    return GroupedLinearRegressionResult(a, b, se_a, se_b, t_a, t_b, p_a, p_b)
+    return LinearRegressionResult(a, b, se_a, se_b, t_a, t_b, p_a, p_b)
 
 
-def grouped_linear_regression_npy_filtered(size_t[:] ind, float[:] v1, float[:] v2) -> GroupedLinearRegressionResult:
+def grouped_linear_regression_npy_filtered(size_t[:] ind, double[:] v1, double[:] v2) -> GroupedLinearRegressionResult:
     cdef:
         CyGroupedLinearRegressionResult r
         size_t i, max_ind, c = 0, num_inds = 0
-        long *count_v1, *count_v2, *df_f
-        float *a_f, *b_f, *se_a_f, *se_b_f, *t_a_f, *t_b_f
+        size_t *count_v1, *count_v2, *df_f
+        double *a_f, *b_f, *se_a_f, *se_b_f, *t_a_f, *t_b_f
 
     try:
         with nogil:
@@ -192,13 +192,13 @@ def grouped_linear_regression_npy_filtered(size_t[:] ind, float[:] v1, float[:] 
                 if count_v1[i] > 0 and count_v2[i] > 0:
                     num_inds += 1
 
-            a_f = <float *> malloc(num_inds * sizeof(float))
-            b_f = <float *> malloc(num_inds * sizeof(float))
-            se_a_f = <float *> malloc(num_inds * sizeof(float))
-            se_b_f = <float *> malloc(num_inds * sizeof(float))
-            t_a_f = <float *> malloc(num_inds * sizeof(float))
-            t_b_f = <float *> malloc(num_inds * sizeof(float))
-            df_f = <long *> malloc(num_inds * sizeof(long))
+            a_f = <double *> malloc(num_inds * sizeof(double))
+            b_f = <double *> malloc(num_inds * sizeof(double))
+            se_a_f = <double *> malloc(num_inds * sizeof(double))
+            se_b_f = <double *> malloc(num_inds * sizeof(double))
+            t_a_f = <double *> malloc(num_inds * sizeof(double))
+            t_b_f = <double *> malloc(num_inds * sizeof(double))
+            df_f = <size_t *> malloc(num_inds * sizeof(size_t))
 
             if (
                 a_f == NULL or
@@ -223,13 +223,13 @@ def grouped_linear_regression_npy_filtered(size_t[:] ind, float[:] v1, float[:] 
                     df_f[c] = r.df[i]
                     c += 1
 
-        a = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_FLOAT, a_f)
-        b = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_FLOAT, b_f)
-        se_a = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_FLOAT, se_a_f)
-        se_b = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_FLOAT, se_b_f)
-        t_a = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_FLOAT, t_a_f)
-        t_b = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_FLOAT, t_b_f)
-        df = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_LONG, df_f)
+        a = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_DOUBLE, a_f)
+        b = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_DOUBLE, b_f)
+        se_a = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_DOUBLE, se_a_f)
+        se_b = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_DOUBLE, se_b_f)
+        t_a = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_DOUBLE, t_a_f)
+        t_b = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_DOUBLE, t_b_f)
+        df = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_UINTP, df_f)
 
         for x in (a, b, se_a,  se_b, t_a, t_b):
             cnp.PyArray_ENABLEFLAGS(x, cnp.NPY_ARRAY_OWNDATA)
@@ -248,6 +248,6 @@ def grouped_linear_regression_npy_filtered(size_t[:] ind, float[:] v1, float[:] 
         free(count_v1)
         free(count_v2)
 
-    return GroupedLinearRegressionResult(
+    return LinearRegressionResult(
         a=a, b=b, se_a=se_a, se_b=se_b, t_a=t_a, t_b=t_b, p_a=p_a, p_b=p_b
     )

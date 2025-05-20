@@ -19,10 +19,10 @@ cdef size_t _define_max_ind(size_t[:] ind) noexcept nogil:
     return max_ind
 
 
-cdef long* _grouped_count(size_t[:] ind, float[:] v, size_t max_ind) nogil:
+cdef size_t* _grouped_count(size_t[:] ind, double[:] v, size_t max_ind) nogil:
     cdef:
         size_t i, n = ind.shape[0]
-        long *count_v = <long *> calloc(max_ind + 1, sizeof(long))
+        size_t *count_v = <size_t *> calloc(max_ind + 1, sizeof(size_t))
 
     if count_v == NULL:
         with gil:
@@ -47,32 +47,31 @@ def define_max_ind(size_t[:] ind):
     return max_ind
 
 
-def grouped_count_npy(size_t[:] ind, float[:] v) -> np.ndarray:
+def grouped_count_npy(size_t[:] ind, double[:] v) -> np.ndarray:
     cdef:
-        size_t max_ind
-        long* r
+        size_t max_ind, *r
 
     with nogil:
         max_ind = _define_max_ind(ind)
         r = _grouped_count(ind, v, max_ind)
 
-    result_array = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_LONG, <void *> r)
+    result_array = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_UINTP, <void *> r)
     cnp.PyArray_ENABLEFLAGS(result_array, cnp.NPY_ARRAY_OWNDATA)
 
     return result_array
 
 
-def grouped_count_npy_filtered(size_t[:] ind, float[:] v) -> np.ndarray:
+def grouped_count_npy_filtered(size_t[:] ind, double[:] v) -> np.ndarray:
     cdef:
         size_t i, max_ind, c = 0, num_inds = 0
-        long *r, *rf
+        size_t *r, *rf
 
     try:
         with nogil:
             max_ind = _define_max_ind(ind)
             r = _grouped_count(ind, v, max_ind)
 
-            rf = <long *> calloc(max_ind + 1, sizeof(long))
+            rf = <size_t *> calloc(max_ind + 1, sizeof(size_t))
 
             for i in range(max_ind + 1):
                 if r[i] > 0:
@@ -80,7 +79,7 @@ def grouped_count_npy_filtered(size_t[:] ind, float[:] v) -> np.ndarray:
                     rf[c] = r[i]
                     c += 1
 
-        result_array = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_LONG, rf)
+        result_array = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_UINTP, <void*> rf)
         cnp.PyArray_ENABLEFLAGS(result_array, cnp.NPY_ARRAY_OWNDATA)
 
     finally:
