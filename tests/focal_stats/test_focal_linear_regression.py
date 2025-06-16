@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pyspatialstats.focal_stats import focal_correlation, focal_linear_regression
+from pyspatialstats.focal import focal_correlation, focal_linear_regression
 from pyspatialstats.windows import define_window
 from tests.focal_stats.utils import (
     focal_correlation_simple,
@@ -53,12 +53,6 @@ def test_correlation_shape(v1, v2):
 
 
 def test_correlation_errors(rs, v1):
-    with pytest.raises(ValueError):
-        focal_correlation(v1, v1, window=5, verbose=2)
-
-    with pytest.raises(ValueError):
-        focal_correlation(v1, v1, window=5, reduce=2)
-
     # not 2D
     with pytest.raises(IndexError):
         a = rs.random((10, 10, 10))
@@ -70,7 +64,7 @@ def test_correlation_errors(rs, v1):
         a = rs.random((15, 15))
         focal_correlation(a, v1)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         focal_correlation(v1, v1, window="x")
 
     with pytest.raises(ValueError):

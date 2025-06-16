@@ -3,77 +3,102 @@ from Cython.Build import cythonize
 from setuptools import find_packages, setup
 from setuptools.extension import Extension
 
-extensions = [
-    ### FOCAL STATS
+misc_extensions = [
     Extension(
-        "pyspatialstats.focal_stats.core.iteration",
-        ["pyspatialstats/focal_stats/core/iteration.pyx"],
+        "pyspatialstats.types.cy_types",
+        ["pyspatialstats/types/cy_types.pyx"],
     ),
-    Extension(
-        "pyspatialstats.focal_stats.core.correlation",
-        ["pyspatialstats/focal_stats/core/correlation.pyx"],
-    ),
-    Extension(
-        "pyspatialstats.focal_stats.core.linear_regression",
-        ["pyspatialstats/focal_stats/core/linear_regression.pyx"],
-    ),
-    Extension(
-        "pyspatialstats.focal_stats.core.stats",
-        ["pyspatialstats/focal_stats/core/stats.pyx"],
-    ),
-    Extension(
-        "pyspatialstats.focal_stats.core.mean",
-        ["pyspatialstats/focal_stats/core/mean.pyx"],
-    ),
-    ### GROUPED STATS
-    Extension(
-        "pyspatialstats.grouped_stats.core.count",
-        ["pyspatialstats/grouped_stats/core/count.pyx"],
-    ),
-    Extension(
-        "pyspatialstats.grouped_stats.core.min",
-        ["pyspatialstats/grouped_stats/core/min.pyx"],
-    ),
-    Extension(
-        "pyspatialstats.grouped_stats.core.max",
-        ["pyspatialstats/grouped_stats/core/max.pyx"],
-    ),
-    Extension(
-        "pyspatialstats.grouped_stats.core.mean",
-        ["pyspatialstats/grouped_stats/core/mean.pyx"],
-    ),
-    Extension(
-        "pyspatialstats.grouped_stats.core.std",
-        ["pyspatialstats/grouped_stats/core/std.pyx"],
-    ),
-    Extension(
-        "pyspatialstats.grouped_stats.core.correlation",
-        ["pyspatialstats/grouped_stats/core/correlation.pyx"],
-    ),
-    Extension(
-        "pyspatialstats.grouped_stats.core.linear_regression",
-        ["pyspatialstats/grouped_stats/core/linear_regression.pyx"],
-    ),
-    ### STRATA STATS
-    Extension(
-        "pyspatialstats.strata_stats.core.stats",
-        ["pyspatialstats/strata_stats/core/stats.pyx"],
-    ),
-    ### RANDOM
     Extension(
         "pyspatialstats.random.random",
         ["pyspatialstats/random/random.pyx"],
     ),
-    ### STATS + BOOTSTRAP
     Extension(
-        "pyspatialstats.stats.mean",
-        ["pyspatialstats/stats/mean.pyx"],
+        "pyspatialstats.bootstrap.mean",
+        ["pyspatialstats/bootstrap/mean.pyx"],
     ),
+]
+
+focal_stat_extensions = [
+    Extension(
+        "pyspatialstats.focal.core.correlation",
+        ["pyspatialstats/focal/core/correlation.pyx"],
+    ),
+    Extension(
+        "pyspatialstats.focal.core.linear_regression",
+        ["pyspatialstats/focal/core/linear_regression.pyx"],
+    ),
+    Extension(
+        "pyspatialstats.focal.core.majority",
+        ["pyspatialstats/focal/core/majority.pyx"],
+    ),
+    Extension(
+        "pyspatialstats.focal.core.mean",
+        ["pyspatialstats/focal/core/mean.pyx"],
+    ),
+    Extension(
+        "pyspatialstats.focal.core.min",
+        ["pyspatialstats/focal/core/min.pyx"],
+    ),
+    Extension(
+        "pyspatialstats.focal.core.max",
+        ["pyspatialstats/focal/core/max.pyx"],
+    ),
+    Extension(
+        "pyspatialstats.focal.core.sum",
+        ["pyspatialstats/focal/core/sum.pyx"],
+    ),
+    Extension(
+        "pyspatialstats.focal.core.std",
+        ["pyspatialstats/focal/core/std.pyx"],
+    ),
+]
+
+grouped_stat_extensions = [
+    Extension(
+        "pyspatialstats.grouped.core.count",
+        ["pyspatialstats/grouped/core/count.pyx"],
+    ),
+    Extension(
+        "pyspatialstats.grouped.core.min",
+        ["pyspatialstats/grouped/core/min.pyx"],
+    ),
+    Extension(
+        "pyspatialstats.grouped.core.max",
+        ["pyspatialstats/grouped/core/max.pyx"],
+    ),
+    Extension(
+        "pyspatialstats.grouped.core.mean",
+        ["pyspatialstats/grouped/core/mean.pyx"],
+    ),
+    Extension(
+        "pyspatialstats.grouped.core.std",
+        ["pyspatialstats/grouped/core/std.pyx"],
+    ),
+    Extension(
+        "pyspatialstats.grouped.core.correlation",
+        ["pyspatialstats/grouped/core/correlation.pyx"],
+    ),
+    Extension(
+        "pyspatialstats.grouped.core.linear_regression",
+        ["pyspatialstats/grouped/core/linear_regression.pyx"],
+    ),
+]
+
+strata_stat_extensions = [
+    Extension(
+        "pyspatialstats.strata.core.stats",
+        ["pyspatialstats/strata/core/stats.pyx"],
+    )
 ]
 
 
 setup(
     packages=find_packages(),
-    ext_modules=cythonize(extensions),
-    include_dirs=[numpy.get_include()]
+    ext_modules=cythonize(
+        misc_extensions
+        + grouped_stat_extensions
+        + strata_stat_extensions
+        + focal_stat_extensions
+    ),
+    include_dirs=[numpy.get_include()],
 )

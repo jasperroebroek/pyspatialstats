@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from scipy.stats import pearsonr
 
-from pyspatialstats.grouped_stats import (
+from pyspatialstats.grouped import (
     grouped_correlation,
     grouped_correlation_pd,
 )
@@ -109,14 +109,11 @@ def test_grouped_correlation_one_group_random(v1, v2):
 def test_grouped_correlation(ind, v1, v2):
     r = grouped_correlation(ind, v1, v2)
 
-    for i in range(1, int(ind.max()) + 1):
+    for i in range(int(ind.max()) + 1):
         values_in_group_1 = v1[ind == i]
         values_in_group_2 = v2[ind == i]
         expected_correlation = np.corrcoef(values_in_group_1, values_in_group_2)[0, 1]
         assert np.isclose(r.c[i], expected_correlation, atol=1e-5)
-
-    # Assuming the function returns NaN for groups with no entries
-    assert np.isnan(r.c[0])
 
 
 def test_grouped_correlation_pd(ind, v1, v2):
@@ -129,8 +126,6 @@ def test_grouped_correlation_pd(ind, v1, v2):
         values_in_group_2 = v2[ind == i]
         expected_correlation = np.corrcoef(values_in_group_1, values_in_group_2)[0, 1]
         assert np.isclose(result_df.loc[i, "c"], expected_correlation, atol=1e-5)
-
-    assert 0 not in result_df.index
 
 
 def test_grouped_correlation_all_nans():

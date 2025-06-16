@@ -147,10 +147,6 @@ def test_rolling_errors(rs):
     with pytest.raises(ValueError):
         rolling_window(a, window=4, reduce=True)
 
-    # no mask and no window
-    with pytest.raises(ValueError):
-        rolling_window(a)
-
     # window with wrong dimensions
     with pytest.raises(IndexError):
         rolling_window(a, window=[5, 5])

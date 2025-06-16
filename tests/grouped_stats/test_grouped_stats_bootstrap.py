@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pyspatialstats.grouped_stats.grouped_stats_bootstrap import grouped_mean_bootstrap
+from pyspatialstats.grouped.stats_bootstrap import grouped_mean_bootstrap
 from pyspatialstats.random.random import RandomInts
 from tests.bootstrap.np_stats import np_bootstrap_mean
 

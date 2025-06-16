@@ -2,9 +2,10 @@ import numpy as np
 import pytest
 from scipy.stats import linregress, pearsonr
 
-from pyspatialstats.strata_stats import strata_min
-from pyspatialstats.strata_stats.strata_stats import (
+from pyspatialstats.strata import strata_min
+from pyspatialstats.strata.stats import (
     strata_correlation,
+    strata_count,
     strata_linear_regression,
     strata_max,
     strata_mean,
@@ -13,87 +14,89 @@ from pyspatialstats.strata_stats.strata_stats import (
 )
 
 
-def test_strata_min(ind, v):
-    r = strata_min(ind, v)
-    expected_result = np.full_like(ind, np.nan, dtype=np.float64)
+@pytest.mark.parametrize(
+    "sst,nps,fill_value", [
+        (strata_min, np.nanmin, np.nan),
+        (strata_max, np.nanmax, np.nan),
+        (strata_mean, np.nanmean, np.nan),
+        (strata_std, np.nanstd, np.nan),
+        (strata_count, np.count_nonzero, 0)
+    ]
+)
+def test_strata_stats(sst, nps, fill_value, ind, v):
+    r = sst(ind, v)
+    expected_result = np.full_like(ind, fill_value, dtype=np.float64)
 
     for i in range(1, int(ind.max()) + 1):
         mask = ind == i
         values = v[mask]
-        minimum = np.nanmin(values)
-        expected_result[mask] = minimum
+        expected_result[mask] = nps(values)
 
     assert np.allclose(expected_result, r, equal_nan=True)
 
 
-def test_strata_min_1D():
+@pytest.mark.parametrize(
+    "sst", [
+        strata_min,
+        strata_max,
+        strata_mean,
+        strata_std,
+        strata_count
+    ]
+)
+def test_strata_stats_1D(sst):
     ind = np.array([], dtype=np.uintp)
     v = np.array([], dtype=np.float64)
     with pytest.raises(IndexError):
-        min_v = strata_min(ind, v)
+        sst(ind, v)
 
 
-# Test with empty arrays
-def test_strata_min_empty():
+@pytest.mark.parametrize(
+    "sst", [
+        strata_min,
+        strata_max,
+        strata_mean,
+        strata_std,
+        strata_count
+    ]
+)
+def test_strata_min_empty(sst):
     ind = np.array([[]], dtype=np.uintp)
     v = np.array([[]], dtype=np.float64)
-    min_v = strata_min(ind, v)
+    min_v = sst(ind, v)
     assert min_v.size == 0
 
 
-# Test with all NaNs
-def test_strata_min_all_nans():
+@pytest.mark.parametrize(
+    "sst,f", [
+        (strata_min, lambda x: (~np.isnan(x))),
+        (strata_max, lambda x: (~np.isnan(x))),
+        (strata_mean, lambda x: (~np.isnan(x))),
+        (strata_std, lambda x: (~np.isnan(x))),
+        (strata_count, lambda x: x > 0),
+    ]
+)
+def test_strata_stats_all_nans(sst, f):
     ind = np.ones((10, 10), dtype=np.uintp)
     v = np.full((10, 10), np.nan, dtype=np.float64)
-    min_v = strata_min(ind, v)
-    assert (~np.isnan(min_v)).sum() == 0
+    strata_v = sst(ind, v)
+    assert f(strata_v).sum() == 0
 
 
-# Test with a single group
-def test_strata_min_single_group():
+@pytest.mark.parametrize(
+    "sst,nps", [
+        (strata_min, np.nanmin),
+        (strata_max, np.nanmax),
+        (strata_mean, np.nanmean),
+        (strata_std, np.nanstd),
+        (strata_count, np.count_nonzero)
+    ]
+)
+def test_strata_min_single_group(sst,nps,rs):
     ind = np.ones((10, 10), dtype=np.uintp)
-    v = np.arange(100, dtype=np.float64).reshape((10, 10))
-    min_v = strata_min(ind, v)
-    assert np.all(min_v == v.min())
-
-
-def test_strata_max(ind, v):
-    r = strata_max(ind, v)
-    expected_result = np.full_like(ind, np.nan, dtype=np.float64)
-
-    for i in range(1, int(ind.max()) + 1):
-        mask = ind == i
-        values = v[mask]
-        maximum = np.nanmax(values)
-        expected_result[mask] = maximum
-
-    assert np.allclose(expected_result, r, equal_nan=True)
-
-
-def test_strata_mean(ind, v):
-    r = strata_mean(ind, v)
-    expected_result = np.full_like(ind, np.nan, dtype=np.float64)
-
-    for i in range(1, int(ind.max()) + 1):
-        mask = ind == i
-        values = v[mask]
-        m = np.nanmean(values)
-        expected_result[mask] = m
-
-    assert np.allclose(expected_result, r, equal_nan=True)
-
-
-def test_strata_std(ind, v):
-    r = strata_std(ind, v)
-    expected_result = np.full_like(ind, np.nan, dtype=np.float64)
-
-    for i in range(1, int(ind.max()) + 1):
-        mask = ind == i
-        values = v[mask]
-        m = np.nanstd(values)
-        expected_result[mask] = m
-
-    assert np.allclose(expected_result, r, equal_nan=True)
+    v = rs.random((10, 10))
+    diff = sst(ind, v) - nps(v)
+    assert np.allclose(diff, 0)
 
 
 def test_strata_mean_std(ind, v):

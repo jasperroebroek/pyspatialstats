@@ -3,22 +3,24 @@ This module defines the definitions of the views in the sliding window methods
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Sequence
+from dataclasses import dataclass
 
 import numpy as np
-from numpydantic import NDArray
-from pydantic import BaseModel, validate_call
+from numpy._typing._shape import _ShapeLike
 
-from pyspatialstats.types import Mask, PositiveInt, Shape
+from pyspatialstats.types.arrays import Mask
 
 
 class Window(ABC):
     @abstractmethod
-    def get_shape(self, ndim: PositiveInt = 2) -> Shape:
+    def get_shape(self, ndim: int = 2) -> tuple[int, ...]:
         pass
 
+    def get_raster_shape(self) -> tuple[int, int]:
+        return self.get_shape()[0], self.get_shape()[1]
+
     @abstractmethod
-    def get_mask(self, ndim: PositiveInt = 2) -> Mask:
+    def get_mask(self, ndim: int = 2) -> Mask:
         pass
 
     @property
@@ -26,36 +28,38 @@ class Window(ABC):
     def masked(self) -> bool:
         pass
 
-    def get_fringes(self, reduce: bool, ndim: PositiveInt = 2) -> NDArray[Any, int]:
+    def get_fringes(self, reduce: bool, ndim: int = 2) -> tuple[int, ...]:
         if reduce:
-            return np.zeros(ndim, dtype=np.int32)
+            return tuple(0 for _ in range(ndim))
+        return tuple(x // 2 for x in self.get_shape(ndim))
 
-        return (np.asarray(self.get_shape(ndim)) // 2).astype(np.int32)
-
-    def get_ind_inner(self, reduce: bool, ndim: PositiveInt = 2) -> tuple[slice]:
+    def get_ind_inner(self, reduce: bool, ndim: int = 2) -> tuple[slice, ...]:
         if reduce:
             return (slice(None),) * ndim
 
-        return tuple(
-            slice(fringe, -fringe) for fringe in self.get_fringes(reduce, ndim)
-        )
+        return tuple(slice(fringe, -fringe) for fringe in self.get_fringes(reduce, ndim))
+
+    def get_threshold(self, fraction_accepted: float = 0.7, ndim: int = 2) -> float:
+        """Minimum amount of data points necessary to calculate the statistic in the window"""
+        if fraction_accepted < 0 or fraction_accepted > 1:
+            raise ValueError('fraction_accepted must between 0 and 1')
+        return max(fraction_accepted * self.get_mask(ndim).sum(), 1)
 
 
-class RectangularWindow(Window, BaseModel):
-    window_size: PositiveInt | Shape
+@dataclass
+class RectangularWindow(Window):
+    window_size: int | tuple[int, ...]
 
-    def get_shape(self, ndim: PositiveInt = 2) -> Shape:
+    def get_shape(self, ndim: int = 2) -> tuple[int, ...]:
         if isinstance(self.window_size, int):
             return (self.window_size,) * ndim
 
         if len(self.window_size) != ndim:
-            raise IndexError(
-                f"dimensions do not match the size of the window: {ndim=} {self.window_size=}"
-            )
+            raise IndexError(f'dimensions do not match the size of the window: {ndim=} {self.window_size=}')
 
         return self.window_size
 
-    def get_mask(self, ndim: PositiveInt = 2) -> Mask:
+    def get_mask(self, ndim: int = 2) -> Mask:
         return np.ones(self.get_shape(ndim), dtype=np.bool_)
 
     @property
@@ -63,24 +67,23 @@ class RectangularWindow(Window, BaseModel):
         return False
 
 
-class MaskedWindow(Window, BaseModel):
+@dataclass
+class MaskedWindow(Window):
     mask: Mask
 
-    def model_post_init(self, *args, **kwargs):
+    def __post_init__(self):
         if self.mask.sum() == 0:
-            raise ValueError("Mask cannot be empty")
+            raise ValueError('Mask cannot be empty')
 
-    def match_shape(self, ndim: PositiveInt) -> None:
+    def match_shape(self, ndim: int) -> None:
         if self.mask.ndim != ndim:
-            raise IndexError(
-                f"dimensions do not match the size of the mask: {ndim=} {self.mask.ndim=}"
-            )
+            raise IndexError(f'dimensions do not match the size of the mask: {ndim=} {self.mask.ndim=}')
 
-    def get_shape(self, ndim: PositiveInt = 2) -> Shape:
+    def get_shape(self, ndim: int = 2) -> tuple[int, ...]:
         self.match_shape(ndim)
         return self.mask.shape
 
-    def get_mask(self, ndim: PositiveInt = 2) -> Mask:
+    def get_mask(self, ndim: int = 2) -> Mask:
         self.match_shape(ndim)
         return self.mask
 
@@ -89,36 +92,31 @@ class MaskedWindow(Window, BaseModel):
         return True
 
 
-def define_window(window: PositiveInt | Shape | Mask | Window) -> Window:
+def define_window(window: int | tuple[int, ...] | list[int] | Mask | Window) -> Window:
     if isinstance(window, Window):
         return window
-    if isinstance(window, Mask):
+    if isinstance(window, np.ndarray) and np.issubdtype(window.dtype, np.bool_):
         return MaskedWindow(mask=window)
-    if isinstance(window, (int, Sequence)):
+    if isinstance(window, (int, tuple, list)):
         return RectangularWindow(window_size=window)
 
-    raise TypeError(
-        f"Window can't be parsed from {window}. Must be int, sequence of int or binary array"
-    )
+    raise TypeError(f"Window can't be parsed from {window}. Must be int, tuple of int or binary array")
 
 
-@validate_call(config={"arbitrary_types_allowed": True})
-def validate_window(
-    window: Window, shape: NDArray[Any, int], reduce: bool, allow_even: bool = False
-) -> None:
+def validate_window(window: Window, shape: _ShapeLike, reduce: bool, allow_even: bool = False) -> None:
     shape = np.asarray(shape)
     window_shape = np.asarray(window.get_shape(shape.size))
 
     if np.any(shape < window_shape):
-        raise ValueError(f"Window bigger than input array: {shape=}, {window=}")
+        raise ValueError(f'Window bigger than input array: {shape=}, {window=}')
 
     if reduce:
-        if not np.array_equal(shape // window_shape, shape / window_shape):
-            raise ValueError("not all dimensions are divisible by window_shape")
+        if not np.all(shape % window_shape == 0):
+            raise ValueError('not all dimensions are divisible by window_shape')
 
     if not allow_even and not reduce:
         if np.any(window_shape % 2 == 0):
-            raise ValueError("Uneven window size is not allowed when not reducing")
+            raise ValueError('Uneven window size is not allowed when not reducing')
 
     if np.all(window_shape == 1):
-        raise ValueError(f"Window size cannot only contain 1s {window_shape=}")
+        raise ValueError(f'Window size cannot only contain 1s {window_shape=}')

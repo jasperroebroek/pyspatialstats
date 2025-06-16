@@ -2,23 +2,26 @@
 This module describes the views into the data to be processed by the focal statistics functions
 """
 
-from typing import Callable, Generator, List, Tuple
+from dataclasses import dataclass
+from typing import Generator
 
-import numpy as np
-from pydantic import BaseModel, validate_call
-
-from pyspatialstats.types import PositiveInt, Shape2D, UInt
-
-# ViewFunction arguments correspond to keys in the `input` dictionary, and should return another dict with the keys
-# corresponding to the `output` dictionary of the `focal_function` function.
-ViewFunction = Callable[[List[np.ndarray]], List[float]]
+from pyspatialstats.types.windows import WindowT
+from pyspatialstats.windows import define_window, validate_window
 
 
-class RasterView(BaseModel):
-    col_off: UInt
-    row_off: UInt
-    width: PositiveInt
-    height: PositiveInt
+@dataclass
+class RasterView:
+    col_off: int
+    row_off: int
+    width: int
+    height: int
+
+    def __post_init__(self):
+        if self.width <= 0 or self.height <= 0:
+            raise ValueError(f'width and height must be positive: {self}')
+
+        if self.col_off < 0 or self.row_off < 0:
+            raise ValueError(f'col_off and row_off must be non-negative: {self}')
 
     @property
     def slices(self) -> tuple[slice, slice]:
@@ -27,111 +30,149 @@ class RasterView(BaseModel):
             slice(self.col_off, self.col_off + self.width),
         )
 
+    @property
+    def shape(self) -> tuple[int, int]:
+        return self.height, self.width
 
-class RasterViewPair(BaseModel):
+
+@dataclass
+class RasterViewPair:
     input: RasterView
     output: RasterView
 
 
-def define_views(
-    raster_shape: Tuple[int, int],
-    view_shape: Tuple[int, int],
-    fringe: Tuple[int, int],
-    step: Tuple[int, int],
+def define_window_views(
+    start: tuple[int, int],
+    stop: tuple[int, int],
+    step: tuple[int, int],
+    window_shape: tuple[int, int],
 ) -> Generator[RasterView, None, None]:
+    """No bounds checking"""
     return (
         RasterView(
-            col_off=x_idx, row_off=y_idx, width=view_shape[1], height=view_shape[0]
+            col_off=x_idx,
+            row_off=y_idx,
+            width=window_shape[1],
+            height=window_shape[0],
         )
-        for y_idx in range(
-            fringe[0], raster_shape[0] - view_shape[0] - fringe[0] + 1, step[0]
-        )
-        for x_idx in range(
-            fringe[1], raster_shape[1] - view_shape[1] - fringe[1] + 1, step[1]
-        )
+        for y_idx in range(start[0], stop[0], step[0])
+        for x_idx in range(start[1], stop[1], step[1])
     )
 
 
-def define_tiles(
-    raster_shape: Shape2D, tile_shape: Shape2D, fringe: Tuple[PositiveInt, PositiveInt]
+def define_tile_views(
+    start: tuple[int, int],
+    stop: tuple[int, int],
+    step: tuple[int, int],
+    tile_shape: tuple[int, int],
 ) -> Generator[RasterView, None, None]:
-    return (
-        RasterView(
-            col_off=x_idx - fringe[1],
-            row_off=y_idx - fringe[0],
-            width=tile_shape[1] + fringe[1] * 2,
-            hight=tile_shape[0] + fringe[0] * 2,
-        )
-        for y_idx in range(0, raster_shape[0], tile_shape[0])
-        for x_idx in range(0, raster_shape[1], tile_shape[1])
-    )
+    """No bounds checking"""
+    height = 0
+    for y_idx in range(start[0], stop[0], step[0]):
+        for x_idx in range(start[1], stop[1], step[1]):
+            width = min(stop[1] - x_idx, tile_shape[1])
+            height = min(stop[0] - y_idx, tile_shape[0])
+            yield RasterView(
+                col_off=x_idx,
+                row_off=y_idx,
+                width=width,
+                height=height,
+            )
+            if width + x_idx == stop[1]:
+                break
+        if height + y_idx == stop[0]:
+            break
 
 
-@validate_call
-def construct_views(
-    raster_shape: Shape2D,
-    view_shape: Shape2D,
+def construct_window_views(
+    raster_shape: tuple[int, int],
+    window: WindowT,
     reduce: bool = False,
 ) -> Generator[RasterViewPair, None, None]:
     """define slices for input and output data for windowed calculations"""
-    if reduce:
-        output_shape = (
-            raster_shape[0] // view_shape[0],
-            raster_shape[1] // view_shape[1],
+    window = define_window(window)
+    validate_window(window, raster_shape, reduce, allow_even=reduce)
+    window_shape = window.get_raster_shape()
+    fringes = window.get_fringes(reduce)
+
+    step = window_shape if reduce else (1, 1)
+    stop = (
+        (
+            raster_shape[0] // window_shape[0],
+            raster_shape[1] // window_shape[1],
         )
-        output_fringe = (0, 0)
-        input_step = view_shape
-    else:
-        output_shape = raster_shape
-        output_fringe = (view_shape[0] // 2, view_shape[1] // 2)
-        input_step = (1, 1)
-
-    input_views = define_views(
-        raster_shape, view_shape=view_shape, fringe=(0, 0), step=input_step
-    )
-    output_views = define_views(
-        output_shape, view_shape=(1, 1), fringe=output_fringe, step=(1, 1)
+        if reduce
+        else (
+            raster_shape[0] - fringes[0],
+            raster_shape[1] - fringes[1],
+        )
     )
 
-    return (
-        RasterViewPair(input=iw, output=ow) for iw, ow in zip(input_views, output_views)
+    input_views = define_window_views(
+        start=(0, 0),
+        stop=(
+            raster_shape[0] - window_shape[0] + 1,
+            raster_shape[1] - window_shape[1] + 1,
+        ),
+        step=step,
+        window_shape=window_shape,
+    )
+    output_views = define_window_views(
+        start=(fringes[0], fringes[1]),
+        stop=stop,
+        step=(1, 1),
+        window_shape=(1, 1),
     )
 
+    return (RasterViewPair(input=iw, output=ow) for iw, ow in zip(input_views, output_views, strict=True))
 
-@validate_call
-def construct_tiles(
-    raster_shape: Shape2D,
-    tile_shape: Shape2D,
-    view_shape: Shape2D,
+
+def construct_tile_views(
+    raster_shape: tuple[int, int],
+    tile_shape: tuple[int, int],
+    window: WindowT,
     reduce: bool = False,
-) -> Generator[RasterViewPair, None, None]:
+) -> tuple[RasterViewPair, ...]:
     """define slices for input and output data for tiled and windowed calculations"""
-    if reduce:
-        fringe = (0, 0)
-        output_shape = (
-            raster_shape[0] // view_shape[0],
-            raster_shape[1] // view_shape[1],
-        )
-        output_tile_shape = (
-            tile_shape[0] // view_shape[0],
-            tile_shape[1] // view_shape[1],
-        )
-    else:
-        fringe = (view_shape[0] // 2, view_shape[1] // 2)
-        output_shape = raster_shape
-        output_tile_shape = tile_shape
+    window = define_window(window)
+    validate_window(window, raster_shape, reduce, allow_even=reduce)
+    window_shape = window.get_raster_shape()
+    fringes = window.get_fringes(reduce)
 
-    input_views = define_tiles(
-        raster_shape,
+    if window_shape[0] >= tile_shape[0] or window_shape[1] >= tile_shape[1]:
+        raise IndexError("Window can't be bigger than the tiles")
+
+    input_step = tile_shape if reduce else (tile_shape[0] - window_shape[0] + 1, tile_shape[1] - window_shape[1] + 1)
+
+    input_views = define_tile_views(
+        start=(0, 0),
+        stop=raster_shape,
+        step=input_step,
         tile_shape=tile_shape,
-        fringe=fringe,
-    )
-    output_views = define_tiles(
-        output_shape,
-        tile_shape=output_tile_shape,
-        fringe=(0, 0),
     )
 
-    return (
-        RasterViewPair(input=iw, output=ow) for iw, ow in zip(input_views, output_views)
+    output_stop = (
+        (raster_shape[0] // window_shape[0], raster_shape[1] // window_shape[1])
+        if reduce
+        else (raster_shape[0] - fringes[0], raster_shape[1] - fringes[1])
     )
+
+    output_tile_shape = (
+        (tile_shape[0] // window_shape[0], tile_shape[1] // window_shape[1])
+        if reduce
+        else (tile_shape[0] - 2 * fringes[0], tile_shape[1] - 2 * fringes[1])
+    )
+
+    output_views = define_tile_views(
+        start=(fringes[0], fringes[1]),
+        stop=output_stop,
+        step=output_tile_shape,
+        tile_shape=output_tile_shape,
+    )
+
+    pairs = tuple(RasterViewPair(input=iw, output=ow) for iw, ow in zip(input_views, output_views, strict=True))
+
+    validate_window(window, pairs[0].input.shape, reduce)
+    validate_window(window, pairs[-1].input.shape, reduce)
+
+    return pairs

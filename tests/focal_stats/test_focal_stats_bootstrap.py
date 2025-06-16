@@ -1,7 +1,7 @@
 import numpy as np
 
-from pyspatialstats.focal_stats import focal_mean_bootstrap
-from pyspatialstats.stats.mean import py_bootstrap_mean
+from pyspatialstats.focal import focal_mean_bootstrap
+from pyspatialstats.bootstrap.mean import py_bootstrap_mean
 
 
 def test_basic_bootstrap():

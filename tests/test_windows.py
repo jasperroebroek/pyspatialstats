@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-from pydantic import ValidationError
 
 from pyspatialstats.windows import (
     MaskedWindow,
@@ -29,6 +28,15 @@ def test_rectangular_window_shape_from_int():
     w = RectangularWindow(window_size=3)
     assert w.get_shape(2) == (3, 3)
     assert not w.masked
+
+
+def test_window_default_ndim():
+    w = define_window(5)
+
+    assert w.get_shape() == (5, 5)
+    assert w.get_mask().shape == (5, 5)
+    assert np.array_equal(w.get_fringes(True), (0, 0))
+    assert np.array_equal(w.get_fringes(False), (2, 2))
 
 
 def test_rectangular_window_shape_from_tuple():
@@ -73,7 +81,7 @@ def test_types(square_mask):
 
 
 def test_define_window_invalid_type():
-    with pytest.raises(ValidationError):
+    with pytest.raises(TypeError):
         define_window("invalid")
 
 
@@ -100,7 +108,7 @@ def test_validate_window_even_not_allowed():
 
 
 def test_validate_window_mask_empty():
-    mask = np.zeros((3, 3), dtype=bool)
+    mask = np.zeros((3, 3), dtype=np.bool_)
     with pytest.raises(ValueError):
         define_window(mask)
 

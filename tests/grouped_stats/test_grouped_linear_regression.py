@@ -4,7 +4,7 @@ import pytest
 import statsmodels.api as sm
 from scipy.stats import linregress
 
-from pyspatialstats.grouped_stats import (
+from pyspatialstats.grouped import (
     grouped_linear_regression,
     grouped_linear_regression_pd,
 )
@@ -175,8 +175,6 @@ def test_grouped_correlation_pd(ind, v1, v2):
 
         assert np.isclose(result_df.loc[i, "a"], expected_result.slope, atol=1e-5)
         assert np.isclose(result_df.loc[i, "b"], expected_result.intercept, atol=1e-5)
-
-    assert 0 not in result_df.index
 
 
 def test_grouped_linear_regression_non_overlapping_data(rs):

@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 import scipy.stats
 from numpy.ma.testutils import assert_array_almost_equal
-from pydantic import ValidationError
 
-from pyspatialstats.focal_stats import (
+from pyspatialstats.enums import MajorityMode
+from pyspatialstats.focal import (
     focal_majority,
     focal_max,
     focal_mean,
@@ -111,19 +111,12 @@ def test_focal_stats_shape(rs, fs):
     ],
 )
 def test_focal_stats_errors(rs, fs):
-    # Not boolean
-    with pytest.raises(ValidationError):
-        fs(rs.random((10, 10)), window=5, verbose=2)
-
-    with pytest.raises(ValidationError):
-        fs(rs.random((10, 10)), window=5, reduce=2)
-
     # not 2D
     with pytest.raises(IndexError):
         a = rs.random((10, 10, 10))
         fs(a, window=5)
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(TypeError):
         a = rs.random((10, 10))
         fs(a, window="x")
 
@@ -219,22 +212,22 @@ def test_focal_majority(rs):
         mode = mode[0]
 
     # Values when reducing
-    assert focal_majority(a, window=5, majority_mode="ascending")[2, 2] == mode
+    assert focal_majority(a, window=5, majority_mode=MajorityMode.ASCENDING)[2, 2] == mode
     # Values when not reducing
     assert (
-        focal_majority(a, window=5, reduce=True, majority_mode="ascending")[0, 0]
+        focal_majority(a, window=5, reduce=True, majority_mode=MajorityMode.ASCENDING)[0, 0]
         == mode
     )
 
     # Same number of observations in several classes lead to NaN in majority_mode='nan'
     a = np.arange(100).reshape(10, 10)
-    assert np.isnan(focal_majority(a, window=10, reduce=True, majority_mode="nan"))
+    assert np.isnan(focal_majority(a, window=10, reduce=True, majority_mode=MajorityMode.NAN))
 
     # Same number of observations in several classes lead to lowest number in majority_mode='ascending'
-    assert focal_majority(a, window=10, reduce=True, majority_mode="ascending") == 0
+    assert focal_majority(a, window=10, reduce=True, majority_mode=MajorityMode.ASCENDING) == 0
 
     # Same number of observations in several classes lead to highest number in majority_mode='descending'
-    assert focal_majority(a, window=10, reduce=True, majority_mode="descending") == 99
+    assert focal_majority(a, window=10, reduce=True, majority_mode=MajorityMode.DESCENDING) == 99
 
 
 def test_focal_stats_nan_behaviour_majority():

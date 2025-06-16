@@ -1,3 +1,3 @@
-from pyspatialstats import focal_stats, grouped_stats, rolling, strata_stats
+from pyspatialstats import focal, grouped, rolling, strata
 
-__all__ = ["focal_stats", "grouped_stats", "strata_stats", "rolling"]
+__all__ = ["focal", "grouped", "strata", "rolling"]

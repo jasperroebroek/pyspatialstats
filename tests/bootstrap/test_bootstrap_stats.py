@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pyspatialstats.stats.mean import py_bootstrap_mean
+from pyspatialstats.bootstrap.mean import py_bootstrap_mean
 from tests.bootstrap.np_stats import np_bootstrap_mean
 
 

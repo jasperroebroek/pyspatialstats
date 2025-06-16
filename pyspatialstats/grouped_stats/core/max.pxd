@@ -1,1 +1,0 @@
-cdef double* _grouped_max(size_t[:] ind, double[:] v, size_t max_ind) nogil

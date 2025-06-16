@@ -9,7 +9,5 @@ scipy
 jupyter
 matplotlib
 joblib
-numpydantic
-pydantic
 setuptools
 rasterio

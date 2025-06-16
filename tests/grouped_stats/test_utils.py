@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from numpy.ma.testutils import assert_array_approx_equal
 
-from pyspatialstats.grouped_stats import define_max_ind as cy_define_max_ind, generate_index
+from pyspatialstats.grouped import define_max_ind as cy_define_max_ind, generate_index
 
 
 def define_max_ind(ind):
@@ -32,9 +32,6 @@ def test_index(ndim):
     v = np.ones(shape)
 
     unique = np.unique(ind)
-    if unique[0] == 0:
-        unique = unique[1:]
-
     assert_array_approx_equal(unique, generate_index(ind, v))
 
 
@@ -42,7 +39,7 @@ def test_index_empty_ind():
     ind = np.zeros(10)
     v = np.ones(10)
 
-    assert_array_approx_equal(generate_index(ind, v), [])
+    assert_array_approx_equal(generate_index(ind, v), [0])
 
 
 def test_index_shape_mismatch():

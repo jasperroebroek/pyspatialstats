@@ -1,7 +1,7 @@
 import numpy as np
 
 from pyspatialstats.random.random import RandomInts
-from pyspatialstats.results import BootstrapMeanResult
+from pyspatialstats.types.results import BootstrapMeanResult
 
 
 def np_bootstrap_mean(v, n_bootstraps, seed=None, rng=None):

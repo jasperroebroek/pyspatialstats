@@ -19,7 +19,6 @@ readme = "README.md"
 
 dependencies = [
     "numpy>=2.2.1",
-    "numpydantic",
     "joblib",
     "pandas",
     "scipy"

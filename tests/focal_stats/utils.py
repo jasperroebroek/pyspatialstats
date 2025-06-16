@@ -2,8 +2,8 @@ import numpy as np
 from scipy.stats import pearsonr
 from statsmodels import api as sm
 
-from pyspatialstats.results import CorrelationResult, LinearRegressionResult
-from pyspatialstats.stat_utils import calculate_p_value
+from pyspatialstats.types.results import CorrelationResult, LinearRegressionResult
+from pyspatialstats.bootstrap.p_values import calculate_p_value
 from pyspatialstats.windows import define_window
 
 

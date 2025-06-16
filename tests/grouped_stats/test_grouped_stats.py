@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pyspatialstats.grouped_stats import (
+from pyspatialstats.grouped import (
     grouped_max,
     grouped_max_pd,
     grouped_mean,
@@ -27,12 +27,10 @@ from pyspatialstats.grouped_stats import (
 def test_grouped_stats(ind, v, fs, np_fs):
     r = fs(ind, v)
 
-    for i in range(1, int(ind.max()) + 1):
+    for i in range(int(ind.max()) + 1):
         values_in_group = v[ind == i]
         expected_r = np_fs(values_in_group)
         assert np.isclose(r[i], expected_r, atol=1e-5)
-
-    assert np.isnan(r[0])
 
 
 @pytest.mark.parametrize(
@@ -54,8 +52,6 @@ def test_grouped_stats_pd(ind, v, fs, np_fs):
         expected_r = np_fs(values_in_group)
         assert np.isclose(result_df.loc[i, result_df.columns[0]], expected_r, atol=1e-5)
 
-    assert 0 not in result_df.index
-
 
 def test_grouped_mean_std_pd(ind, v):
     result_df = grouped_mean_std_pd(ind, v)
@@ -68,8 +64,6 @@ def test_grouped_mean_std_pd(ind, v):
         expected_std = np.nanstd(values_in_group)
         assert np.isclose(result_df.loc[i, "mean"], expected_mean, atol=1e-5)
         assert np.isclose(result_df.loc[i, "std"], expected_std, atol=1e-5)
-
-    assert 0 not in result_df.index
 
 
 @pytest.mark.parametrize(
