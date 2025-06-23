@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Generator
 
 from pyspatialstats.types.windows import WindowT
-from pyspatialstats.windows import define_window, validate_window
+from pyspatialstats.windows import Window, define_window
 
 
 @dataclass
@@ -30,9 +30,20 @@ class RasterView:
             slice(self.col_off, self.col_off + self.width),
         )
 
+    def get_external_slices(self, window: Window, reduce: bool) -> tuple[slice, slice]:
+        fringes = window.get_fringes(ndim=2, reduce=reduce)
+        return (
+            slice(self.row_off - fringes[0], self.row_off + self.height + fringes[0]),
+            slice(self.col_off - fringes[1], self.col_off + self.width + fringes[1]),
+        )
+
     @property
     def shape(self) -> tuple[int, int]:
         return self.height, self.width
+
+    def get_external_shape(self, window: Window, reduce: bool) -> tuple[int, int]:
+        fringes = window.get_fringes(ndim=2, reduce=reduce)
+        return self.height + 2 * fringes[0], self.width + 2 * fringes[1]
 
 
 @dataclass
@@ -91,7 +102,7 @@ def construct_window_views(
 ) -> Generator[RasterViewPair, None, None]:
     """define slices for input and output data for windowed calculations"""
     window = define_window(window)
-    validate_window(window, raster_shape, reduce, allow_even=reduce)
+    window.validate(reduce, allow_even=reduce, shape=raster_shape)
     window_shape = window.get_raster_shape()
     fringes = window.get_fringes(reduce)
 
@@ -135,7 +146,7 @@ def construct_tile_views(
 ) -> tuple[RasterViewPair, ...]:
     """define slices for input and output data for tiled and windowed calculations"""
     window = define_window(window)
-    validate_window(window, raster_shape, reduce, allow_even=reduce)
+    window.validate(reduce, allow_even=reduce, shape=raster_shape)
     window_shape = window.get_raster_shape()
     fringes = window.get_fringes(reduce)
 
@@ -172,7 +183,7 @@ def construct_tile_views(
 
     pairs = tuple(RasterViewPair(input=iw, output=ow) for iw, ow in zip(input_views, output_views, strict=True))
 
-    validate_window(window, pairs[0].input.shape, reduce)
-    validate_window(window, pairs[-1].input.shape, reduce)
+    window.validate(reduce, shape=pairs[0].input.shape)
+    window.validate(reduce, shape=pairs[-1].input.shape)
 
     return pairs

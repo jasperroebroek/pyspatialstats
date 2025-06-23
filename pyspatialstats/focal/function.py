@@ -1,6 +1,6 @@
 import tempfile
 from dataclasses import dataclass
-from typing import Callable, Dict, Literal, Optional
+from typing import Callable, Dict, Optional
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -9,24 +9,21 @@ from numpy.typing import DTypeLike, NDArray
 from pyspatialstats.types.windows import WindowT
 from pyspatialstats.utils import timeit
 from pyspatialstats.views import RasterViewPair, construct_window_views
-from pyspatialstats.windows import define_window, validate_window
+from pyspatialstats.windows import Window, define_window
 
 
 @dataclass
 class MemmapContext:
     raster_shape: tuple[int, int]
-    window_shape: tuple[int, int]
+    window: Window
     reduce: bool
     dtype: DTypeLike = np.float64
 
     def __post_init__(self):
-        if self.reduce:
-            self.memmap_shape = (
-                self.raster_shape[0] // self.window_shape[0],
-                self.raster_shape[1] // self.window_shape[1],
-            )
-        else:
-            self.memmap_shape = self.raster_shape
+        self.window.validate(self.reduce, shape=self.raster_shape)
+        self.memmap_shape = self.window.define_windowed_shape(
+            window=self.window, reduce=self.reduce, shape=self.raster_shape
+        )
 
         self.open: bool = False
         self.memmap: Optional[np.memmap] = None
@@ -102,11 +99,6 @@ def focal_function(
     outputs: Dict[str, NDArray],
     window: WindowT,
     reduce: bool = False,
-    # joblib Parallel arg
-    n_jobs: int = 1,
-    verbose: bool = False,
-    prefer: Literal['threads', 'processes'] = 'threads',
-    # kwargs go to fn
     **kwargs,
 ) -> None:
     """Focal statistics with an arbitrary function. prefer 'threads' always works, 'processes' only works with memmaps,
@@ -123,7 +115,7 @@ def focal_function(
             raise IndexError(f'Not all input rasters have the same shape: {raster_shapes}')
 
     window = define_window(window)
-    validate_window(window, raster_shapes[0], reduce, allow_even=False)
+    window.validate(reduce, allow_even=False, shape=raster_shapes[0])
     window_shape = window.get_shape(2)
 
     for key in outputs:
@@ -140,6 +132,6 @@ def focal_function(
 
     view_pairs = construct_window_views(raster_shapes[0], window_shape, reduce)
 
-    Parallel(n_jobs=n_jobs, verbose=verbose, prefer=prefer, mmap_mode='r+')(
+    Parallel(prefer='threads', mmap_mode='r+')(
         delayed(process_window)(fn, inputs, outputs, vp, **kwargs) for vp in view_pairs
     )

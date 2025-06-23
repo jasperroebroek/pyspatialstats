@@ -2,8 +2,6 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 
-import numpy as np
-
 from libc.math cimport isnan
 from libc.stdlib cimport calloc, free, malloc
 from numpy.math cimport NAN
@@ -12,7 +10,7 @@ cimport numpy as cnp
 from pyspatialstats.grouped.core.count cimport _define_max_ind, _grouped_count
 from pyspatialstats.random.random cimport RandomInts
 from pyspatialstats.bootstrap.mean cimport _bootstrap_mean, CyBootstrapMeanResult
-from pyspatialstats.types.results import BootstrapMeanResult
+from pyspatialstats.types.results import MeanResult
 
 
 cdef double* _grouped_mean(size_t[:] ind, double[:] v, size_t max_ind) except NULL nogil:
@@ -143,7 +141,7 @@ def grouped_mean_bootstrap_npy(size_t[:] ind, double[:] v, size_t n_bootstraps, 
     se_array = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, <void *> result.se_v)
     cnp.PyArray_ENABLEFLAGS(se_array, cnp.NPY_ARRAY_OWNDATA)
 
-    return BootstrapMeanResult(mean_array, se_array)
+    return MeanResult(mean=mean_array, se=se_array)
 
 
 def grouped_mean_npy_filtered(size_t[:] ind, double[:] v) -> np.ndarray[tuple[int], np.float64]:
@@ -232,4 +230,4 @@ def grouped_mean_bootstrap_npy_filtered(size_t[:] ind, double[:] v, n_bootstraps
         free(result.mean_v)
         free(result.se_v)
 
-    return BootstrapMeanResult(mean_array, se_array)
+    return MeanResult(mean=mean_array, se=se_array)

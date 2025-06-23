@@ -4,6 +4,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from pyspatialstats.grouped.utils import parse_data
+from pyspatialstats.types.results import CorrelationResult, LinearRegressionResult, StatResult
 from pyspatialstats.strata.core.stats import (
     _strata_correlation,
     _strata_count,
@@ -15,10 +16,9 @@ from pyspatialstats.strata.core.stats import (
     _strata_std,
 )
 from pyspatialstats.types.arrays import RasterFloat64, RasterSizeT, RasterT
-from pyspatialstats.types.results import CorrelationResult, LinearRegressionResult, Result
 
 
-def strata_fun(fun: Callable, ind: RasterSizeT, **data) -> RasterFloat64 | Result:
+def strata_fun(fun: Callable, ind: RasterSizeT, **data) -> RasterFloat64 | StatResult:
     ind = np.asarray(ind)
     if ind.ndim != 2:
         raise IndexError('Only 2D data is supported')
@@ -176,7 +176,7 @@ def strata_linear_regression(ind: RasterSizeT, v1: NDArray, v2: NDArray) -> Line
     Returns
     -------
     LinearRegressionResult
-        The result of the linear regression in each index.
+        The cy_result of the linear regression in each index.
         a - the slope
         b - the intercept
         se_a - the standard error of the slope

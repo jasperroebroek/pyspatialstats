@@ -1,4 +1,4 @@
-.. currentmodule:: focal_stats
+.. currentmodule:: focal_stats_base
 
 #############
 API reference
@@ -7,7 +7,7 @@ API reference
 Focal statistics
 ================
 
-This module provides focal statistics functionality, similar to the methods in the ArcGIS software. The various functions in this module accept a 2D array as input data. The sliding window characteristics (dimensions and masking) are provided through the ``window`` keyword. This accepts either an integer, a boolean mask, or a :class:`focal_stats.window.Window` object. The functions return an array, either of the same dimensions as the input data, or an array of smaller dimensions if the ``reduce`` parameter is used. This allows for a non-overlapping sliding window. :func:`focal_correlation` calculates the correlation between two arrays in contrast to the other functions that operate on a single array.
+This module provides focal statistics functionality, similar to the methods in the ArcGIS software. The various functions in this module accept a 2D array as input data. The sliding window characteristics (dimensions and masking) are provided through the ``window`` keyword. This accepts either an integer, a boolean mask, or a :class:`focal_stats_base.window.Window` object. The functions return an array, either of the same dimensions as the input data, or an array of smaller dimensions if the ``reduce`` parameter is used. This allows for a non-overlapping sliding window. :func:`focal_correlation` calculates the correlation between two arrays in contrast to the other functions that operate on a single array.
 
 .. autosummary::
     :toctree: generated/focal_statistics
@@ -26,7 +26,7 @@ Grouped statistics
 
 .. currentmodule:: grouped_stats
 
-This module provides functions that calculate statistics based on strata, allowing for data of any dimensionality. To use these functions, you must provide an array ``ind`` with the same shape as the data, which represent the strata index. Note that an index value of 0 indicates that the corresponding data point should be skipped.
+This module provides functions that calculate statistics based on strata, allowing for data of any dimensionality. To use these functions, you must provide an array ``ind`` with the same shape as the data, which represent the strata index.
 
 For each statistic, two functions are available:
 
@@ -93,7 +93,7 @@ Windows
 
 .. currentmodule:: window
 
-The sliding window methods as described above are implemented in this module, through the :class:`focal_stats.window.Window` class. Two concrete implementations are provided: RectangularWindow and MaskedWindow. Custom implementations can be provided by subclassing the :class:`focal_stats.window.Window` class, implementing the ``get_shape`` and ``get_mask`` methods and the ``masked`` property.
+The sliding window methods as described above are implemented in this module, through the :class:`focal_stats_base.window.Window` class. Two concrete implementations are provided: RectangularWindow and MaskedWindow. Custom implementations can be provided by subclassing the :class:`focal_stats_base.window.Window` class, implementing the ``get_shape`` and ``get_mask`` methods and the ``masked`` property.
 
 
 .. autosummary::

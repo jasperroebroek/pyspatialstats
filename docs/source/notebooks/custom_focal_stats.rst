@@ -10,7 +10,7 @@ Creating custom focal statistic function
 
 .. code:: python
 
-    import pyspatialstats.focal_stats as fs
+    import pyspatialstats.focal_stats_base as fs
     import pyspatialstats.rolling as rolling
     import rasterio as rio
     import matplotlib.pyplot as plt

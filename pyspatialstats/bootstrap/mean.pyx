@@ -1,11 +1,18 @@
 import numpy as np
+from pyspatialstats.types.results import MeanResult
 
 from pyspatialstats.random.random cimport RandomInts
 from libc.stdlib cimport calloc, free
 from libc.math cimport sqrt
 
 
-cdef CyBootstrapMeanResult _bootstrap_mean(double* v, size_t n_samples, size_t n_bootstraps, RandomInts rng, double *means) noexcept nogil:
+cdef CyBootstrapMeanResult _bootstrap_mean(
+    double* v,
+    size_t n_samples,
+    size_t n_bootstraps,
+    RandomInts rng,
+    double *means
+) noexcept nogil:
     """This function does not have to look for NaNs, they are filtered out before"""
     cdef:
         size_t i, j
@@ -25,15 +32,10 @@ cdef CyBootstrapMeanResult _bootstrap_mean(double* v, size_t n_samples, size_t n
 
     se = sqrt(sum_squared_diff / n_bootstraps)
 
-    # with gil:
-    #     for i in range(n_bootstraps):
-    #         print(f"means[{i}]={means[i]}")
-    #     print(f"{mean=}")
-
     return CyBootstrapMeanResult(mean=mean, se=se)
 
 
-def py_bootstrap_mean(v: np.ndarray, n_bootstraps: int, seed: int = 0) -> tuple[double, double]:
+def py_bootstrap_mean(v: np.ndarray, n_bootstraps: int, seed: int = 0) -> MeanResult:
     cdef:
         double *means = <double *> calloc(n_bootstraps, sizeof(double))
         double[:] v_parsed = np.asarray(v, dtype=np.float64)
@@ -53,4 +55,4 @@ def py_bootstrap_mean(v: np.ndarray, n_bootstraps: int, seed: int = 0) -> tuple[
     result = _bootstrap_mean(&v_parsed[0], n_samples, n_bootstraps, rng, means)
 
     free(means)
-    return result.mean, result.se
+    return MeanResult(mean=result.mean, se=result.se)

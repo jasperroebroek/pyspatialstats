@@ -1,79 +1,74 @@
-from typing import Literal
+from functools import partial
+from typing import Literal, Optional
 
-import numpy as np
-from numpy.typing import ArrayLike
-
+from pyspatialstats.focal.focal_core import focal_stats, focal_stats_base
 from pyspatialstats.focal.core.std import _focal_std
-from pyspatialstats.rolling import rolling_window
-from pyspatialstats.types.arrays import RasterFloat64
+from pyspatialstats.types.arrays import Array, RasterFloat64
 from pyspatialstats.types.windows import WindowT
-from pyspatialstats.utils import create_output_array, parse_raster, timeit
-from pyspatialstats.windows import define_window, validate_window
+from pyspatialstats.utils import timeit
 
 
 @timeit
 def focal_std(
-    a: ArrayLike,
+    a: Array,
     *,
     window: WindowT,
     fraction_accepted: float = 0.7,
-    verbose: bool = False,
+    verbose: bool = False,  # noqa
     reduce: bool = False,
+    chunks: Optional[int | tuple[int, int]] = None,
     std_df: Literal[0, 1] = 0,
+out: Optional[Array] = None
 ) -> RasterFloat64:
     """
     Focal standard deviation
 
     Parameters
     ----------
-    a : array-like
-        Input array
-    window : int, array-like, Window
-        Window that is applied over `a`. It can be an integer or a sequence of integers, which will be interpreted as
-        a rectangular window, a boolean array or a :class:`pyspatialstats.window.Window` object.
+    a: Array
+        Input array. Must be two-dimensional.
+    window : int, array-like, or Window
+        Window applied over the input array. It can be:
+
+        - An integer (interpreted as a square window),
+        - A sequence of integers (interpreted as a rectangular window),
+        - A boolean array,
+        - Or a :class:`pyspatialstats.window.Window` object.
     fraction_accepted : float, optional
-        Fraction of valid cells (not NaN) per window that is deemed acceptable
+        Fraction of valid (non-NaN) cells per window required for the statistic to be computed.
 
-        * ``0``: all views are calculated if at least 1 value is present
-        * ``1``: only views completely filled with values are calculated
-        * ``0-1``: fraction of acceptability
+        - ``0``: use windows with at least 1 valid value
+        - ``1``: use only fully valid windows
+        - Between ``0`` and ``1``: minimum acceptable fraction
 
-    reduce : bool, optional
-        Use all pixels exactly once, without windows overlapping. The resulting array will have the shape:
-        ``a_shape / window_shape``
+        Default is 0.7.
     verbose : bool, optional
-        Verbosity with timing. False by default
-    std_df : {1,0}, optional
-        Degrees of freedom; meaning if the function is divided by the count of observations or the count of observations
-        minus one. Should be 0 or 1. See :func:`numpy.std` for documentation.
+        If True, print progress message with timing. Default is False.
+    reduce : bool, optional
+        If True, each pixel is used exactly once without overlapping windows. The resulting array will have shape
+        ``a_shape / window_shape``. Default is False.
+    chunks : int or tuple of int, optional
+        Shape of chunks to split the array into. If None, the array is not split into chunks, which is the default.
+    std_df : {0, 1}, optional
+        Degrees of freedom for standard deviation:
+
+        - ``0``: normalize by ``N`` (population standard deviation)
+        - ``1``: normalize by ``N - 1`` (sample standard deviation)
+
+        Default is 0. See :cy_func:`numpy.std` for more details.
+    out : :obj:`~numpy.ndarray`, optional
+        Output array.
 
     Returns
     -------
     :obj:`~numpy.ndarray`
-        numpy array of the focal statistic. If `reduce` is set to False, the output has the same shape as the input,
-        while if `reduce` is True, the output is reduced by the window size: ``raster_shape // window_shape``.
     """
-    a = parse_raster(a)
-
-    window = define_window(window)
-    validate_window(window, a.shape, reduce, allow_even=False)
-    mask = window.get_mask()
-
-    fringe = window.get_fringes(reduce)
-    ind_inner = window.get_ind_inner(reduce)
-    threshold = window.get_threshold(fraction_accepted=fraction_accepted)
-
-    r = create_output_array(a, window.get_raster_shape(), reduce)
-    a_windowed = rolling_window(a, window=window, reduce=reduce)
-
-    _focal_std(
-        a=a_windowed,
-        mask=mask,
-        r=r[ind_inner],
-        dof=std_df,
-        fringe=np.asarray(fringe, dtype=np.int32),
-        threshold=threshold,
+    return focal_stats(
+        a,
+        func=partial(focal_stats_base, cy_func=_focal_std, dof=std_df),
+        window=window,
+        fraction_accepted=fraction_accepted,
         reduce=reduce,
+        chunks=chunks,
+        out=out
     )
-
-    return r

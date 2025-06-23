@@ -3,7 +3,7 @@ from numpy.typing import ArrayLike
 
 from pyspatialstats.rolling.window import rolling_window
 from pyspatialstats.types.windows import WindowT
-from pyspatialstats.windows import define_window, validate_window
+from pyspatialstats.windows import define_window
 
 
 def rolling_sum(
@@ -30,20 +30,18 @@ def rolling_sum(
     Returns
     -------
     :obj:`~numpy.ndarray`
-        Rolling sum over array `a`. Resulting shape depends on reduce parameter. See :func:`rolling_window` for
+        Rolling sum over array `a`. Resulting shape depends on reduce parameter. See :cy_func:`rolling_window` for
         documentation.
     """
     a = np.asarray(a)
     shape = np.asarray(a.shape)
 
     window = define_window(window)
-    validate_window(window, shape, reduce, allow_even=True)
-
-    window_shape = np.asarray(window.get_shape(a.ndim))
+    window.validate(reduce, allow_even=True, shape=shape)
+    window_shape = window.get_shape(a.ndim)
 
     if window.masked or reduce:
         axis = -1 if window.masked else tuple(range(a.ndim, 2 * a.ndim))
-
         return rolling_window(a, window=window, reduce=reduce).sum(axis=axis)
 
     if np.issubdtype(a.dtype, np.bool_):
@@ -99,16 +97,16 @@ def rolling_mean(
     Returns
     -------
     :obj:`~numpy.ndarray`
-        Rolling mean over array `a`. Resulting shape depends on reduce parameter. See :func:`rolling_window` for
+        Rolling mean over array `a`. Resulting shape depends on reduce parameter. See :cy_func:`rolling_window` for
         documentation.
     """
     a = np.asarray(a)
     shape = np.asarray(a.shape)
 
     window = define_window(window)
-    validate_window(window, shape, reduce, allow_even=True)
+    window.validate(reduce, allow_even=True, shape=shape)
 
-    window_shape = np.asarray(window.get_shape(a.ndim))
+    window_shape = window.get_shape(a.ndim)
 
     div = window.get_mask(a.ndim).sum() if window.masked else np.prod(window_shape)
 

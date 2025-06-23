@@ -1,163 +1,140 @@
-import numpy as np
-from numpy.typing import ArrayLike
+from functools import partial
+from typing import Optional
 
+import numpy as np
+
+from pyspatialstats.bootstrap.config import BootstrapConfig
+from pyspatialstats.enums import Uncertainty
 from pyspatialstats.focal.core.mean import _focal_mean, _focal_mean_bootstrap
-from pyspatialstats.rolling import rolling_window
-from pyspatialstats.types.arrays import RasterFloat64
-from pyspatialstats.types.results import BootstrapMeanResult
+from pyspatialstats.focal.core.std import _focal_std_means_precomputed
+from pyspatialstats.focal.focal_core import focal_stats, focal_stats_base
+from pyspatialstats.focal.result_config import FocalMeanResultConfig
+from pyspatialstats.types.results import MeanResult
+from pyspatialstats.types.arrays import Array
 from pyspatialstats.types.windows import WindowT
-from pyspatialstats.utils import create_output_array, parse_raster, timeit
-from pyspatialstats.windows import (
-    define_window,
-    validate_window,
-)
+from pyspatialstats.utils import timeit
+from pyspatialstats.windows import Window, define_window
+
+
+def _focal_mean_base(
+    a: Array,
+    *,
+    window: Window,
+    fraction_accepted: float,
+    reduce: bool,
+    bootstrap_config: Optional[BootstrapConfig],
+    out: Optional[MeanResult],
+    result_config: FocalMeanResultConfig,
+) -> MeanResult:
+    if result_config.uncertainty == Uncertainty.SE:
+        if bootstrap_config is None:
+            bootstrap_config = BootstrapConfig()
+
+        return focal_stats_base(
+            a,
+            cy_func=_focal_mean_bootstrap,
+            window=window,
+            fraction_accepted=fraction_accepted,
+            reduce=reduce,
+            result_config=result_config,
+            out=out,
+            **bootstrap_config.__dict__,
+        )
+
+    mean = focal_stats_base(
+        a,
+        cy_func=_focal_mean,
+        window=window,
+        fraction_accepted=fraction_accepted,
+        reduce=reduce,
+        out=out.mean if out is not None else None,
+    )
+
+    if result_config.uncertainty is None:
+        return MeanResult(mean=mean)
+
+    window = define_window(window)
+    ind_inner = window.get_ind_inner(ndim=2, reduce=reduce)
+
+    a_mean = mean[ind_inner]
+    if not isinstance(a_mean, np.ndarray):
+        a_mean = np.asarray(a_mean)
+
+    std = focal_stats_base(
+        a,
+        cy_func=_focal_std_means_precomputed,
+        window=window,
+        fraction_accepted=fraction_accepted,
+        reduce=reduce,
+        a_mean=a_mean,
+        dof=0,
+        out=out.std if out is not None else None,
+    )
+
+    return MeanResult(mean=mean, std=std)
 
 
 @timeit
 def focal_mean(
-    a: ArrayLike,
-    *,
-    window: WindowT,
-    fraction_accepted: float = 0.7,
-    verbose: bool = False,
-    reduce: bool = False,
-) -> RasterFloat64:
-    """
-    Focal mean
-
-    Parameters
-    ----------
-    a : array-like
-        Input array
-    window : int, array-like, Window
-        Window that is applied over `a`. It can be an integer or a sequence of integers, which will be interpreted as
-        a rectangular window, a boolean array or a :class:`pyspatialstats.window.Window` object.
-    fraction_accepted : float, optional
-        Fraction of valid cells (not NaN) per window that is deemed acceptable
-
-        * ``0``: all views are calculated if at least 1 value is present
-        * ``1``: only views completely filled with values are calculated
-        * ``0-1``: fraction of acceptability
-
-    reduce : bool, optional
-        Use all pixels exactly once, without windows overlapping. The resulting array will have the shape:
-        ``a_shape / window_shape``
-    verbose : bool, optional
-        Verbosity with timing. False by default
-
-    Returns
-    -------
-    :obj:`~numpy.ndarray`
-        numpy array of the focal statistic. If `reduce` is set to False, the output has the same shape as the input,
-        while if `reduce` is True, the output is reduced by the window size: ``raster_shape // window_shape``.
-    """
-    a = parse_raster(a)
-
-    window = define_window(window)
-    validate_window(window, a.shape, reduce, allow_even=False)
-    mask = window.get_mask()
-
-    fringe = window.get_fringes(reduce)
-    ind_inner = window.get_ind_inner(reduce)
-    threshold = window.get_threshold(fraction_accepted=fraction_accepted)
-
-    r = create_output_array(a, window.get_raster_shape(), reduce)
-    a_windowed = rolling_window(a, window=window, reduce=reduce)
-
-    _focal_mean(
-        a=a_windowed,
-        mask=mask,
-        r=r[ind_inner],
-        fringe=np.asarray(fringe, dtype=np.int32),
-        threshold=threshold,
-        reduce=reduce,
-    )
-
-    return r
-
-
-@timeit
-def focal_mean_bootstrap(
-    a: ArrayLike,
+    a: Array,
     *,
     window: WindowT,
     fraction_accepted: float = 0.7,
     verbose: bool = False,  # noqa
     reduce: bool = False,
-    n_bootstraps: int = 1000,
-    seed: int = 0,
-) -> RasterFloat64:
+    chunks: Optional[int | tuple[int, int]] = None,
+    uncertainty: Optional[Uncertainty] = None,
+    bootstrap_config: Optional[BootstrapConfig] = None,
+    out: Optional[MeanResult] = None,
+) -> MeanResult:
     """
-    Bootstrapped focal mean
+    Focal mean.
 
     Parameters
     ----------
-    a : array-like
-        Input array (2D)
-    window : int, array_like, Window
-        Window that is applied over ``a``. It can be an integer or a sequence of integers, which will be interpreted as
-        a rectangular window, a mask or a Window object.
+    a: Array
+        Input array to compute the focal mean on. Must be two-dimensional.
+    window : int, array-like, or Window
+        Window applied over the input array. It can be:
+
+        - An integer (interpreted as a square window),
+        - A sequence of integers (interpreted as a rectangular window),
+        - A boolean array,
+        - Or a :class:`pyspatialstats.window.Window` object.
     fraction_accepted : float, optional
-        Fraction of valid cells (not NaN) per window that is deemed acceptable
+        Fraction of valid (non-NaN) cells per window required for computation.
 
-        * ``0``: all windows are calculated if at least 1 value is present
-        * ``1``: only windows completely filled with values are calculated
-        * ``0-1``: fraction of acceptability
+        - ``0``: all views are used if at least 1 value is present
+        - ``1``: only fully valid views are used
+        - Between ``0`` and ``1``: minimum fraction of valid cells required
 
+        Default is 0.7.
     verbose : bool, optional
-        Verbosity with timing. False by default
+        If True, print progress message with timing. Default is False.
     reduce : bool, optional
-        The way in which the windowed array is created. If true, all values are used exactly once. If False (which is
-        the default), values are reduced and the output array has the same raster_shape as the input array, albeit with a
-        border of nans where there are not enough values to calculate the cells.
+        If True, uses each pixel exactly once without overlapping windows. The resulting array shape is
+        ``a_shape / window_shape``. Default is False.
+    chunks : int or tuple of int, optional
+        Shape of chunks to split the array into. If None, the array is not split into chunks, which is the default.
+    uncertainty : Uncertainty, optional
+        Type of uncertainty to calculate. If None, no uncertainty is computed, which is the default.
+    bootstrap_config : BootstrapConfig, optional
+        Bootstrap configuration object. Required if uncertainty is set to use bootstrapping. Default is None.
+    out : MeanResult, optional
+        MeanResult object to update in-place
 
     Returns
     -------
-    :obj:`~numpy.ndarray`
-        if ``reduce`` is False:
-            numpy ndarray of the function applied to input array ``a``. The raster_shape will
-            be the same as the input array. The border of the map will be filled with nan,
-            because of the lack of data to calculate the border. In the future other
-            behaviours might be implemented. To obtain only the useful cells the
-            following might be done:
-
-                >>> window_shape = 5
-                >>> fringe = window_shape // 2
-                >>> ind_inner = np.s_[fringe:-fringe, fringe:-fringe]
-                >>> a = a[ind_inner]
-
-            in which case a will only contain the cells for which all data was
-            present
-        if ``reduce`` is True:
-            numpy ndarray of the function applied on input array ``a``. The raster_shape
-            will be the original raster_shape divided by the ``window_shape``. Dimensions
-            remain equal. No border of NaN values is present.
+    MeanResult
+        Dataclass containing the focal mean array and (optionally) uncertainty measures.
     """
-
-    a = parse_raster(a)
-
-    window = define_window(window)
-    validate_window(window, a.shape, reduce, allow_even=False)
-    mask = window.get_mask(2)
-
-    fringe = window.get_fringes(reduce)
-    ind_inner = window.get_ind_inner(reduce)
-    threshold = fraction_accepted * mask.sum()
-
-    mean = create_output_array(a, window.get_shape(2), reduce)
-    se = create_output_array(a, window.get_shape(2), reduce)
-    a_windowed = rolling_window(a, window=window, reduce=reduce)
-
-    _focal_mean_bootstrap(
-        a_windowed,
-        window.get_mask(2),
-        mean[ind_inner],
-        se[ind_inner],
-        np.asarray(fringe, dtype=np.int32),
-        threshold,
-        reduce,
-        n_bootstraps,
-        seed,
+    return focal_stats(
+        a,
+        func=partial(_focal_mean_base, bootstrap_config=bootstrap_config),
+        window=window,
+        fraction_accepted=fraction_accepted,
+        reduce=reduce,
+        chunks=chunks,
+        result_config=FocalMeanResultConfig(uncertainty=uncertainty),
+        out=out,
     )
-
-    return BootstrapMeanResult(mean=mean, se=se)

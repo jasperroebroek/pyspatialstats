@@ -114,7 +114,7 @@ def grouped_min_pd(ind: np.ndarray, v: np.ndarray) -> pd.DataFrame:
     return grouped_fun_pd(grouped_min_npy_filtered, name='minimum', ind=ind, v=v)
 
 
-def grouped_count(ind: np.ndarray, v: np.ndarray) -> np.ndarray[tuple[int], np.int64]:
+def grouped_count(ind: np.ndarray, v: np.ndarray) -> np.ndarray[tuple[int], np.uintp]:
     """
     Compute the count of each index.
 

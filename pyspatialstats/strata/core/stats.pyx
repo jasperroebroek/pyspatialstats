@@ -2,9 +2,8 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 
-from pyspatialstats.bootstrap.p_values import calculate_p_value
-from pyspatialstats.types.arrays import RasterInt32, RasterFloat64
-from pyspatialstats.types.results import CorrelationResult, LinearRegressionResult, StatsResult
+from pyspatialstats.stats.p_values import calculate_p_value
+from pyspatialstats.types.results import CorrelationResult, LinearRegressionResult, MeanResult
 
 import numpy as np
 
@@ -102,7 +101,7 @@ def _strata_std(size_t[:] ind, double[:] v, size_t rows, size_t cols) -> RasterF
     return r
 
 
-def _strata_mean_std(size_t[:] ind, double[:] v, size_t rows, size_t cols) -> StatsResult:
+def _strata_mean_std(size_t[:] ind, double[:] v, size_t rows, size_t cols) -> MeanResult:
     cdef:
         double[:, ::1] mean_r = np.full((rows, cols), dtype=np.float64, fill_value=np.nan)
         double[:, ::1] std_r = np.full((rows, cols), dtype=np.float64, fill_value=np.nan)
@@ -127,7 +126,7 @@ def _strata_mean_std(size_t[:] ind, double[:] v, size_t rows, size_t cols) -> St
         free(mean_v)
         free(std_v)
 
-    return StatsResult(
+    return MeanResult(
         mean=np.asarray(mean_r),
         std=np.asarray(std_r)
     )
@@ -217,6 +216,8 @@ def _strata_linear_regression(size_t[:] ind,
                     c = ind[i * cols + j]
                     if c == 0:
                         continue
+
+                    df_r[i, j] = r.df[c]
                     a_r[i, j] = r.a[c]
                     b_r[i, j] = r.b[c]
                     se_a_r[i, j] = r.se_a[c]
@@ -236,6 +237,7 @@ def _strata_linear_regression(size_t[:] ind,
         free(r.df)
 
     return LinearRegressionResult(
+        df=np.asarray(df_r),
         a=np.asarray(a_r),
         b=np.asarray(b_r),
         se_a=np.asarray(se_a_r),

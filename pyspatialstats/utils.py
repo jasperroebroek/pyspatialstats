@@ -1,13 +1,13 @@
 import time
 from functools import wraps
+from typing import Optional
 
 import numpy as np
-from numpy.typing import ArrayLike, DTypeLike
+from numpy._typing import ArrayLike, DTypeLike
+from numpy._typing._shape import _ShapeLike
 
-from pyspatialstats.types.arrays import (
-    RasterNumeric,
-    RasterT,
-)
+from pyspatialstats.types.results import StatResult
+from pyspatialstats.types.arrays import Array, RasterNumeric
 
 
 def timeit(func):
@@ -30,6 +30,8 @@ def timeit(func):
             for key, value in kwargs.items():
                 if isinstance(value, np.ndarray):
                     print_args.append(f'{key}=ndarray({value.shape})')
+                elif isinstance(value, StatResult):
+                    print_args.append(f'{key}=StatResult({value.get_shape()})')
                 else:
                     print_args.append(f'{key}={value}')
 
@@ -46,29 +48,25 @@ def parse_raster(a: ArrayLike) -> RasterNumeric:
 
     if a_parsed.ndim != 2:
         raise IndexError('Only 2D data is supported')
-
     if a_parsed.dtype not in (np.float32, np.float64, np.int32, np.int64):
         raise TypeError(f'Unsupported data type {a.dtype=}')
 
     return a_parsed
 
 
-def define_output_shape(a: np.ndarray, window_shape: tuple[int, ...], reduce: bool) -> tuple[int, ...]:
-    a_shape = np.asarray(a.shape)
-    window_shape = np.asarray(window_shape)
-
-    if a_shape.size != window_shape.size:
-        raise ValueError('a and window_shape must have the same number of dimensions')
-
-    return tuple(a_shape // window_shape) if reduce else a.shape
+def get_dtype(name: str) -> DTypeLike:
+    if name in ('ind', 'count', 'df'):
+        return np.uintp
+    else:
+        return np.float64
 
 
-def create_output_array(
-    a: RasterT,
-    window_shape: tuple[int, int],
-    reduce: bool,
-    dtype: DTypeLike = np.float64,
-) -> RasterT:
-    shape = define_output_shape(a, window_shape, reduce)
-    fill_value = np.nan if np.issubdtype(dtype, np.floating) else 0
-    return np.full(shape, dtype=dtype, fill_value=fill_value)
+def validate_raster(name: str, r: Optional[Array], expected_shape: _ShapeLike) -> None:
+    if r is None:
+        return
+    if not isinstance(r, Array):
+        raise TypeError(f'Expected array-like but got {type(r).__name__}')
+    if not np.allclose(r.shape, expected_shape):
+        raise ValueError(f'Shape {r.shape} does not match expected shape {expected_shape} for {name}')
+    if not np.isdtype(r.dtype, get_dtype(name)):
+        raise ValueError(f'Wrong dtype, got {r.dtype} and expected {get_dtype(name)}')

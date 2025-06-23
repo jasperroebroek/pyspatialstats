@@ -3,7 +3,7 @@ from scipy.stats import pearsonr
 from statsmodels import api as sm
 
 from pyspatialstats.types.results import CorrelationResult, LinearRegressionResult
-from pyspatialstats.bootstrap.p_values import calculate_p_value
+from pyspatialstats.stats.p_values import calculate_p_value
 from pyspatialstats.windows import define_window
 
 
@@ -28,6 +28,7 @@ def focal_linear_regression_simple(a1, a2, window=5):
     mask = window.get_mask(2)
     fringes = window.get_fringes(False, 2)
 
+    df = np.full(a1.shape, 0, dtype=np.uintp)
     a = np.full(a1.shape, np.nan)
     b = np.full(a1.shape, np.nan)
     se_a = np.full(a1.shape, np.nan)
@@ -47,6 +48,10 @@ def focal_linear_regression_simple(a1, a2, window=5):
             d1 = a1[ind][mask]
             d2 = a2[ind][mask]
 
+            values_mask = ~np.isnan(d1) & ~np.isnan(d2)
+            d1 = d1[values_mask]
+            d2 = d2[values_mask]
+
             # statsmodels implementation
             d1_with_intercept = sm.add_constant(d1)
             model = sm.OLS(d2, d1_with_intercept)
@@ -58,8 +63,10 @@ def focal_linear_regression_simple(a1, a2, window=5):
             se_b[i, j] = result.bse[0]
             p_a[i, j] = result.pvalues[1]
             p_b[i, j] = result.pvalues[0]
+            df[i, j] = result.df_resid
 
     return LinearRegressionResult(
+        df=df,
         a=a,
         b=b,
         se_a=se_a,
@@ -71,7 +78,7 @@ def focal_linear_regression_simple(a1, a2, window=5):
     )
 
 
-def focal_correlation_simple(a1, a2, window=5, fraction_accepted=0.7):
+def focal_correlation_simple(a1, a2, window, fraction_accepted=0.7):
     a1, a2 = overlapping_arrays(a1, a2)
 
     window = define_window(window)

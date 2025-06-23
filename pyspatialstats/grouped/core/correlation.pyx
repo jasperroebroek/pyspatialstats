@@ -2,7 +2,7 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 
-from pyspatialstats.bootstrap.p_values import calculate_p_value
+from pyspatialstats.stats.p_values import calculate_p_value
 from pyspatialstats.types.results import CorrelationResult
 
 cimport numpy as cnp
@@ -120,13 +120,14 @@ def grouped_correlation_npy(size_t[:] ind, double[:] v1, double[:] v2) -> Groupe
         cnp.PyArray_ENABLEFLAGS(corr_arr, cnp.NPY_ARRAY_OWNDATA)
 
         t_arr = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.t)
-        df_arr = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_UINTP, r.df)
 
-        py_r = CorrelationResult(corr_arr, calculate_p_value(t_arr, df_arr))
+        df_arr = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_UINTP, r.df)
+        cnp.PyArray_ENABLEFLAGS(df_arr, cnp.NPY_ARRAY_OWNDATA)
+
+        py_r = CorrelationResult(c=corr_arr, df=df_arr, p=calculate_p_value(t_arr, df_arr))
 
     finally:
         free(r.t)
-        free(r.df)
 
     return py_r
 
@@ -172,8 +173,9 @@ def grouped_correlation_npy_filtered(size_t[:] ind, double[:] v1, double[:] v2) 
 
         t_arr = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_DOUBLE, t_f)
         df_arr = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_UINTP, df_f)
+        cnp.PyArray_ENABLEFLAGS(df_arr, cnp.NPY_ARRAY_OWNDATA)
 
-        py_r = CorrelationResult(corr_arr, calculate_p_value(t_arr, df_arr))
+        py_r = CorrelationResult(c=corr_arr, df=df_arr, p=calculate_p_value(t_arr, df_arr))
 
     except MemoryError:
         free(c_f)
@@ -185,6 +187,5 @@ def grouped_correlation_npy_filtered(size_t[:] ind, double[:] v1, double[:] v2) 
         free(count_v1)
         free(count_v2)
         free(t_f)
-        free(df_f)
 
     return py_r

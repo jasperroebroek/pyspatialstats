@@ -7,7 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   pyspatialstats.focal_stats
+   pyspatialstats.focal_stats_base
    pyspatialstats.grouped_stats
    pyspatialstats.rolling
    pyspatialstats.strata_stats

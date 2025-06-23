@@ -5,14 +5,22 @@
 import numpy as np
 cimport numpy as np
 from libc.math cimport isnan, sqrt
-from pyspatialstats.types.cy_types cimport CyFocalLinearRegressionResult, numeric_v1, numeric_v2
+from pyspatialstats.types.cy_types cimport numeric_v1, numeric_v2
 
 
 cpdef void _focal_linear_regression(
     numeric_v1[:, :, :, :] a1,
     numeric_v2[:, :, :, :] a2,
     np.npy_uint8[:, ::1] mask,
-    CyFocalLinearRegressionResult r,
+    # return rasters
+    double[:, :] a,
+    double[:, :] b,
+    double[:, :] se_a,
+    double[:, :] se_b,
+    double[:, :] t_a,
+    double[:, :] t_b,
+    size_t[:, :] df,
+    # parameters
     int[:] fringe,
     double threshold,
     bint reduce
@@ -56,22 +64,22 @@ cpdef void _focal_linear_regression(
                 if count < threshold:
                     continue
 
-                r.df[i, j] = count - 2
+                df[i, j] = count - 2
 
-                r.a[i, j] = (count * sum_a1_a2 - sum_a1 * sum_a2) / (count * sum_a1_squared - (sum_a1 * sum_a1))
-                r.b[i, j] = (sum_a2 - r.a[i, j] * sum_a1) / count
+                a[i, j] = (count * sum_a1_a2 - sum_a1 * sum_a2) / (count * sum_a1_squared - (sum_a1 * sum_a1))
+                b[i, j] = (sum_a2 - a[i, j] * sum_a1) / count
 
                 for p in range(mask.shape[0]):
                     for q in range(mask.shape[1]):
                         if not isnan(a1_window[p, q]) and not isnan(a2_window[p, q]) and mask[p, q]:
-                            residual = a2_window[p, q] - (r.a[i, j] * a1_window[p, q] + r.b[i, j])
+                            residual = a2_window[p, q] - (a[i, j] * a1_window[p, q] + b[i, j])
                             sum_residuals_squared += residual * residual
 
                 se = sqrt(sum_residuals_squared / (count - 2))
                 ss_a1_residuals = sum_a1_squared - (sum_a1 ** 2) / count
 
-                r.se_a[i, j] = se / sqrt(ss_a1_residuals)
-                r.se_b[i, j] = se * sqrt((1.0 / count) + ((sum_a1 / count) ** 2) / ss_a1_residuals)
+                se_a[i, j] = se / sqrt(ss_a1_residuals)
+                se_b[i, j] = se * sqrt((1.0 / count) + ((sum_a1 / count) ** 2) / ss_a1_residuals)
 
-                r.t_a[i, j] = r.a[i, j] / r.se_a[i, j]
-                r.t_b[i, j] = r.b[i, j] / r.se_b[i, j]  
+                t_a[i, j] = a[i, j] / se_a[i, j]
+                t_b[i, j] = b[i, j] / se_b[i, j]

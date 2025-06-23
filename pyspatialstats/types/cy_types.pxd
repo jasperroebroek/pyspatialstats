@@ -26,13 +26,3 @@ cdef struct CyGroupedLinearRegressionResult:
     double *se_b
     double *t_a
     double *t_b
-
-cdef class CyFocalCorrelationResult:
-    cdef:
-        size_t[:, :] df
-        double[:, :] c
-
-cdef class CyFocalLinearRegressionResult:
-    cdef:
-        size_t[:, :] df
-        double[:, :] a, b, se_a, se_b, t_a, t_b

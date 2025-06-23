@@ -1,12 +1,7 @@
 import numpy as np
 import pytest
 
-from pyspatialstats.windows import (
-    MaskedWindow,
-    RectangularWindow,
-    define_window,
-    validate_window,
-)
+from pyspatialstats.windows import MaskedWindow, RectangularWindow, define_window
 
 
 @pytest.fixture
@@ -82,29 +77,29 @@ def test_types(square_mask):
 
 def test_define_window_invalid_type():
     with pytest.raises(TypeError):
-        define_window("invalid")
+        define_window('invalid')
 
 
 def test_validate_window_basic(basic_shape):
     w = define_window((3, 3))
-    validate_window(w, basic_shape, reduce=False)
+    w.validate(reduce=False, shape=basic_shape)
 
 
 def test_validate_window_reduction_valid(basic_shape):
     w = define_window((5, 5))
-    validate_window(w, basic_shape, reduce=True)
+    w.validate(reduce=True, shape=basic_shape)
 
 
 def test_validate_window_window_too_large():
     w = define_window((10, 10))
     with pytest.raises(ValueError):
-        validate_window(w, np.array([5, 5]), reduce=False)
+        w.validate(reduce=False, a=np.empty(shape=(5, 5)))
 
 
 def test_validate_window_even_not_allowed():
     w = define_window((4, 4))
     with pytest.raises(ValueError):
-        validate_window(w, np.array([10, 10]), reduce=False, allow_even=False)
+        w.validate(reduce=False, allow_even=False, a=np.empty(shape=(10, 10)))
 
 
 def test_validate_window_mask_empty():

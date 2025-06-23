@@ -6,10 +6,10 @@ from pyspatialstats.grouped.utils import (
     grouped_fun,
     grouped_fun_pd,
 )
-from pyspatialstats.types.results import BootstrapMeanResult
+from pyspatialstats.types.results import MeanResult
 
 
-def grouped_mean_bootstrap(ind: NDArray, v: NDArray, n_bootstraps: int, seed: int) -> BootstrapMeanResult:
+def grouped_mean_bootstrap(ind: NDArray, v: NDArray, n_bootstraps: int, seed: int) -> MeanResult:
     """
     Compute the bootstrapped mean of each stratum.
 

@@ -1,92 +1,105 @@
+from typing import Optional
+
 import numpy as np
-from numpy.typing import ArrayLike
 
 from pyspatialstats.focal.core.correlation import _focal_correlation
-from pyspatialstats.rolling import rolling_window
-from pyspatialstats.bootstrap.p_values import calculate_p_value
-from pyspatialstats.types.cy_types import CyFocalCorrelationResult
+from pyspatialstats.focal.focal_core import focal_stats, focal_stats_base
+from pyspatialstats.focal.result_config import FocalCorrelationResultConfig
 from pyspatialstats.types.results import CorrelationResult
+from pyspatialstats.stats.p_values import calculate_p_value
+from pyspatialstats.types.arrays import Array
 from pyspatialstats.types.windows import WindowT
-from pyspatialstats.utils import create_output_array, parse_raster, timeit
-from pyspatialstats.windows import define_window, validate_window
+from pyspatialstats.utils import timeit
+
+
+def _focal_correlation_base(
+    a1: Array,
+    a2: Array,
+    *,
+    window: WindowT,
+    fraction_accepted: float,
+    reduce: bool,
+    result_config: FocalCorrelationResultConfig,
+    out: Optional[CorrelationResult],
+) -> CorrelationResult:
+    r: CorrelationResult = focal_stats_base(
+        a1,
+        a2,
+        cy_func=_focal_correlation,
+        window=window,
+        fraction_accepted=fraction_accepted,
+        reduce=reduce,
+        result_config=result_config,
+        out=out,
+    )
+
+    if result_config.p_values:
+        t = r.c * np.sqrt(r.df) / np.sqrt(1 - r.c**2)
+        r.p = calculate_p_value(t, r.df, out=r.p)
+
+    return r
 
 
 @timeit
 def focal_correlation(
-    a1: ArrayLike,
-    a2: ArrayLike,
+    a1: Array,
+    a2: Array,
     *,
-    window: WindowT = 5,
+    window: WindowT,
     fraction_accepted: float = 0.7,
     verbose: bool = False,  # noqa
     reduce: bool = False,
+    chunks: Optional[int | tuple[int, int]] = None,
     p_values: bool = False,
+    out: Optional[CorrelationResult] = None,
 ) -> CorrelationResult:
     """
-    Focal correlation
+    Focal correlation.
 
     Parameters
     ----------
-    a1, a2 : array-like
-        Input arrays that will be correlated. They need to have the same shape and have two dimensions.
-    window : int, array-like, Window
-        Window that is applied over `a`. It can be an integer or a sequence of integers, which will be interpreted as
-        a rectangular window, a boolean array or a :class:`pyspatialstats.window.Window` object.
+    a1, a2 : Array
+        Input arrays to be correlated. They must have the same shape and be two-dimensional.
+    window : int, array-like, or Window, optional
+        Window applied over the input arrays. It can be:
+
+        - An integer (interpreted as a square window),
+        - A sequence of integers (interpreted as a rectangular window),
+        - A boolean array,
+        - Or a :class:`pyspatialstats.window.Window` object.
     fraction_accepted : float, optional
-        Fraction of valid cells (not NaN) per window that is deemed acceptable
+        Fraction of valid cells (i.e., not NaN) per window required for the correlation to be computed.
 
-        * ``0``: all views are calculated if at least 1 value is present
-        * ``1``: only views completely filled with values are calculated
-        * ``0-1``: fraction of acceptability
+        - ``0``: include views with at least 1 valid value
+        - ``1``: include only fully valid views
+        - Between ``0`` and ``1``: minimum fraction of valid values required
 
-    reduce : bool, optional
-        Use all pixels exactly once, without windows overlapping. The resulting array will have the shape:
-        ``a_shape / window_shape``
+        Default is 0.7.
     verbose : bool, optional
-        Verbosity with timing
+        If True, print timing. Default is False.
+    reduce : bool, optional
+        If True, use each pixel exactly once without overlapping windows. The resulting array will have shape
+        ``a_shape / window_shape``. Default is False.
+    p_values : bool, optional
+        If True, calculate p-values along with correlation coefficients. Default is False.
+    chunks : int or tuple of int, optional
+        Shape of chunks to split the array into. If None, the array is not split into chunks, which is the default.
+    out : CorrelationResult, optional
+        CorrelationResult object to write results to.
 
     Returns
     -------
-    :obj:`~numpy.ndarray`
-        numpy array of the focal statistic. If `reduce` is set to False, the output has the same shape as the input,
-        while if `reduce` is True, the output is reduced by the window size: ``raster_shape // window_shape``.
+    CorrelationResult
+        Dataclass containing correlation coefficients (and optionally p-values).
     """
-    a1 = parse_raster(a1)
-    a2 = parse_raster(a2)
-
-    if a1.shape != a2.shape:
-        raise ValueError(f'Input arrays have different shapes: {a1.shape=}, {a2.shape=}')
-
-    window = define_window(window)
-    validate_window(window, a1.shape, reduce, allow_even=False)
-    mask = window.get_mask(2)
-
-    fringes = window.get_fringes(reduce)
-    ind_inner = window.get_ind_inner(reduce)
-    threshold = window.get_threshold(fraction_accepted=fraction_accepted)
-
-    df = create_output_array(a1, window.get_raster_shape(), reduce, dtype=np.uintp)
-    c = create_output_array(a1, window.get_raster_shape(), reduce, dtype=np.float64)
-
-    r = CyFocalCorrelationResult(df=df[ind_inner], c=c[ind_inner])
-
-    a1_windowed = rolling_window(a1, window=window.get_shape(), reduce=reduce)
-    a2_windowed = rolling_window(a2, window=window.get_shape(), reduce=reduce)
-
-    _focal_correlation(
-        a1_windowed,
-        a2_windowed,
-        mask=window.get_mask(),
-        r=r,
-        fringe=np.asarray(fringes, dtype=np.int32),
-        threshold=threshold,
+    return focal_stats(
+        a1,
+        a2,
+        func=_focal_correlation_base,
+        window=window,
+        fraction_accepted=fraction_accepted,
         reduce=reduce,
+        chunks=chunks,
+        result_config=FocalCorrelationResultConfig(p_values=p_values),
+        out=out,
     )
-
-    if p_values:
-        t = c * np.sqrt(df) / np.sqrt(1 - c**2)
-        p = calculate_p_value(t, df)
-    else:
-        p = None
-
-    return CorrelationResult(c=c, p=p)

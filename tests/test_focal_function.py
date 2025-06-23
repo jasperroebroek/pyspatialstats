@@ -22,8 +22,8 @@ def test_focal_function(rs):
     focal_function(mean_fun_t, inputs, outputs, window=5, reduce=True, key="y")
 
     # Check for equality
-    m = focal_mean(inputs["x"], fraction_accepted=0, window=5, reduce=True)
-    np.allclose(m, outputs["y"], equal_nan=True)
+    m = focal_mean(inputs["x"], window=5, fraction_accepted=0, reduce=True)
+    np.allclose(m.mean, outputs["y"], equal_nan=True)
 
 
 def test_focal_function_keyword_only(rs):

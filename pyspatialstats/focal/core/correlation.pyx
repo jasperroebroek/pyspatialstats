@@ -4,14 +4,17 @@
 
 cimport numpy as np
 from libc.math cimport isnan, sqrt
-from pyspatialstats.types.cy_types cimport CyFocalCorrelationResult, numeric_v1, numeric_v2
+from pyspatialstats.types.cy_types cimport numeric_v1, numeric_v2
 
 
 cpdef void _focal_correlation(
     numeric_v1[:, :, :, :] a1,
     numeric_v2[:, :, :, :] a2,
     np.npy_uint8[:, ::1] mask,
-    CyFocalCorrelationResult r,
+    # return rasters
+    size_t[:, :] df,
+    double[:, :] c,
+    # parameters
     int[:] fringe,
     double threshold,
     bint reduce,
@@ -67,9 +70,9 @@ cpdef void _focal_correlation(
                     r_den_d2 = r_den_d2 + c2_dist ** 2
 
             if r_den_d1 == 0 or r_den_d2 == 0:
-                r.c[i, j] = 0
-                r.df[i, j] = 0
+                c[i, j] = 0
+                df[i, j] = 0
                 continue
 
-            r.c[i, j] = r_num / sqrt(r_den_d1 * r_den_d2)
-            r.df[i, j] = count - 2
+            c[i, j] = r_num / sqrt(r_den_d1 * r_den_d2)
+            df[i, j] = count - 2

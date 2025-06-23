@@ -83,7 +83,7 @@ master_doc = "index"
 # Else, today_fmt is used as the format for a strftime call.
 # today_fmt = '%B %d, %Y'
 
-# List of patterns, relative to source directory, that match files and
+# list of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 exclude_patterns = ["_build", "**.ipynb_checkpoints", "logo"]
 
@@ -91,7 +91,7 @@ exclude_patterns = ["_build", "**.ipynb_checkpoints", "logo"]
 # documents.
 # default_role = None
 
-# If true, '()' will be appended to :func: etc. cross-reference text.
+# If true, '()' will be appended to :cy_func: etc. cross-reference text.
 # add_function_parentheses = True
 
 # If true, the current module name will be prepended to all description
@@ -206,7 +206,7 @@ htmlhelp_basename = "focalstatsdoc"
 
 # -- Options for manual page output ---------------------------------------
 
-# One entry per manual page. List of tuples
+# One entry per manual page. list of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [("index")]
 
@@ -219,7 +219,7 @@ man_pages = [("index")]
 # disable warnings
 warnings.filterwarnings("ignore")
 
-notebooks = [Path.cwd() / 'notebooks' / f"{file}.ipynb" for file in ('focal_stats', 'custom_focal_stats')]
+notebooks = [Path.cwd() / 'notebooks' / f"{file}.ipynb" for file in ('focal', 'custom_focal_stats')]
 
 print("\nBuilding notebooks:")
 for nb in notebooks:

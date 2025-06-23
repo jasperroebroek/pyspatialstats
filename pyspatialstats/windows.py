@@ -1,14 +1,15 @@
 """
-This module defines the definitions of the views in the sliding window methods
+This module defines the definitions of the views in the sliding window methods and focal statistics
 """
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Optional
 
 import numpy as np
 from numpy._typing._shape import _ShapeLike
 
-from pyspatialstats.types.arrays import Mask
+from pyspatialstats.types.arrays import Array, Mask
 
 
 class Window(ABC):
@@ -45,6 +46,48 @@ class Window(ABC):
             raise ValueError('fraction_accepted must between 0 and 1')
         return max(fraction_accepted * self.get_mask(ndim).sum(), 1)
 
+    def validate(
+        self,
+        reduce: bool,
+        allow_even: bool = False,
+        a: Optional[Array] = None,
+        shape: Optional[_ShapeLike] = None,
+    ) -> None:
+        if a is None and shape is None:
+            raise ValueError('Neither a nor shape are given')
+
+        shape = a.shape if a is not None else shape
+        window_shape = self.get_shape(len(shape))
+
+        if np.any(np.less(shape, window_shape)):
+            raise ValueError(f'Window bigger than input array: {shape=}, {self=}')
+
+        if reduce:
+            if not np.all(np.remainder(shape, window_shape) == 0):
+                raise ValueError('not all dimensions are divisible by window_shape')
+
+        if not allow_even and not reduce:
+            if np.any(np.remainder(window_shape, 2) == 0):
+                raise ValueError('Uneven window size is not allowed when not reducing')
+
+        if all((ws == 1 for ws in window_shape)):
+            raise ValueError(f'Window size cannot only contain 1s {window_shape=}')
+
+    def define_windowed_shape(
+        self, reduce: bool, a: Optional[Array] = None, shape: Optional[_ShapeLike] = None
+    ) -> _ShapeLike:
+        if a is None and shape is None:
+            raise ValueError('Neither a nor shape are given')
+
+        ndim = a.ndim if a is not None else len(shape)
+        shape = a.shape if a is not None else shape
+        window_shape = self.get_shape(ndim=ndim)
+
+        if len(shape) != len(window_shape):
+            raise ValueError('a and window_shape must have the same number of dimensions')
+
+        return np.floor_divide(shape, window_shape) if reduce else shape
+
 
 @dataclass
 class RectangularWindow(Window):
@@ -55,7 +98,7 @@ class RectangularWindow(Window):
             return (self.window_size,) * ndim
 
         if len(self.window_size) != ndim:
-            raise IndexError(f'dimensions do not match the size of the window: {ndim=} {self.window_size=}')
+            raise IndexError(f'dimensions do not match the size of the window: {ndim=} window_size={self.window_size}')
 
         return self.window_size
 
@@ -101,22 +144,3 @@ def define_window(window: int | tuple[int, ...] | list[int] | Mask | Window) -> 
         return RectangularWindow(window_size=window)
 
     raise TypeError(f"Window can't be parsed from {window}. Must be int, tuple of int or binary array")
-
-
-def validate_window(window: Window, shape: _ShapeLike, reduce: bool, allow_even: bool = False) -> None:
-    shape = np.asarray(shape)
-    window_shape = np.asarray(window.get_shape(shape.size))
-
-    if np.any(shape < window_shape):
-        raise ValueError(f'Window bigger than input array: {shape=}, {window=}')
-
-    if reduce:
-        if not np.all(shape % window_shape == 0):
-            raise ValueError('not all dimensions are divisible by window_shape')
-
-    if not allow_even and not reduce:
-        if np.any(window_shape % 2 == 0):
-            raise ValueError('Uneven window size is not allowed when not reducing')
-
-    if np.all(window_shape == 1):
-        raise ValueError(f'Window size cannot only contain 1s {window_shape=}')

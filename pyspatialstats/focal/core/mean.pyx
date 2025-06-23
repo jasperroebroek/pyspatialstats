@@ -76,7 +76,7 @@ cpdef void _focal_mean_bootstrap(
         free(window_values)
         raise MemoryError("Memory allocation failed")
 
-    rng = RandomInts(seed)
+    rng = RandomInts(seed if seed != 0 else None)
 
     with nogil:
         for i in range(a.shape[0]):

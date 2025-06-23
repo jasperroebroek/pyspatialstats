@@ -2,7 +2,7 @@ import numpy as np
 from numpy.lib.stride_tricks import as_strided
 
 from pyspatialstats.types.windows import WindowT
-from pyspatialstats.windows import define_window, validate_window
+from pyspatialstats.windows import define_window
 
 
 def rolling_window(
@@ -14,7 +14,7 @@ def rolling_window(
     **kwargs,
 ) -> np.ndarray:
     """
-    Takes an array and returns a windowed version, similar to :func:`numpy.lib.stride_tricks.as_strided`. If flatten is
+    Takes an array and returns a windowed version, similar to :cy_func:`numpy.lib.stride_tricks.as_strided`. If flatten is
     True, or a masked window is provided, the windowed view will be flattened, resulting in an array that has only one
     dimension more than the input array. This will require a copy of the data, increasing the memory usage. This can be
     problematic for large arrays and large window sizes.
@@ -27,7 +27,7 @@ def rolling_window(
         Window that is applied over `a`. It can be an integer or a sequence of integers, which will be interpreted as
         a rectangular window, a boolean array or a :class:`pyspatialstats.window.Window` object. The output will be of
         dimension ``a.ndim + a.ndim``. If a mask is provided (or a Window that is masked), it will be used to flatten
-        `a_view`, resulting in dimensionality ``a.ndim + 1`` as the final result, just as in the case of `flatten` is
+        `a_view`, resulting in dimensionality ``a.ndim + 1`` as the final cy_result, just as in the case of `flatten` is
         True.
     flatten : bool, optional
         Flag to flatten the windowed view to 1 dimension. If set to True, the dimensionality of the output will be
@@ -36,8 +36,12 @@ def rolling_window(
         Reuse data if set to False (which is the default) in which case an array will be returned with dimensions that
         are close to the input array. If set to True, every entry is used exactly once, meaning that the sliding windows
         do not overlap each other. This creating much smaller output array.
+    reduce : bool, optional
+        Reuse data if set to False (which is the default) in which case an array will be returned with dimensions that
+        are close to the input array. If set to True, every entry is used exactly once, meaning that the sliding windows
+        do not overlap each other. This creating much smaller output array.
     kwargs : dict, optional
-        Arguments for :func:`~numpy.lib.stride_tricks.as_strided`, notably ``subok`` and ``writeable`` (see numpy
+        Arguments for :cy_func:`~numpy.lib.stride_tricks.as_strided`, notably ``subok`` and ``writeable`` (see numpy
         documentation).
 
     Returns
@@ -50,24 +54,22 @@ def rolling_window(
         np.prod(window_shape)``.
     """
     a = np.asarray(a)
-    shape = np.asarray(a.shape, dtype=np.int32)
-    strides = np.asarray(a.strides, dtype=np.int32)
 
     window = define_window(window)
-    validate_window(window, shape, reduce, allow_even=True)
+    window.validate(reduce, allow_even=True, shape=a.shape)
 
-    window_shape = np.asarray(window.get_shape(a.ndim))
+    window_shape = window.get_shape(a.ndim)
 
     if reduce:
-        output_shape = np.r_[shape // window_shape, window_shape]
-        output_strides = np.r_[strides * window_shape, strides]
+        output_shape = np.r_[np.floor_divide(a.shape, window_shape), window_shape]
+        output_strides = np.r_[np.multiply(a.strides, window_shape), a.strides]
 
     else:
-        output_shape = np.r_[shape - window_shape + 1, window_shape]
-        output_strides = np.r_[strides, strides]
+        output_shape = np.r_[np.subtract(a.shape, window_shape) + 1, window_shape]
+        output_strides = np.r_[a.strides, a.strides]
 
     # create view on the data with new raster_shape and strides
-    strided_a = as_strided(a, shape=output_shape.astype(int), strides=output_strides.astype(int), **kwargs)
+    strided_a = as_strided(a, shape=output_shape, strides=output_strides, **kwargs)
 
     if window.masked or flatten:
         return strided_a[..., window.get_mask(a.ndim)]

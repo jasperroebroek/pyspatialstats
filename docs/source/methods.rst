@@ -1,4 +1,4 @@
-.. currentmodule:: focal_stats
+.. currentmodule:: focal_stats_base
 
 Focal statistics
 ================

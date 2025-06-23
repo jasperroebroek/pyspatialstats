@@ -71,10 +71,10 @@ def test_py_grouped_correlation_against_scipy(rs):
         group_v1 = a[group_indices]
         group_v2 = b[group_indices]
 
-        # Calculate expected result using NumPy/SciPy
+        # Calculate expected cy_result using NumPy/SciPy
         expected_result = linregress(group_v1, group_v2)
 
-        # Compare the results.py
+        # Compare the focal.py
         assert result.a[group] == pytest.approx(expected_result.slope, rel=1e-4)
         assert result.b[group] == pytest.approx(expected_result.intercept, rel=1e-4)
         assert result.p_a[group] == pytest.approx(expected_result.pvalue, rel=1e-4)
@@ -149,7 +149,7 @@ def test_py_grouped_correlation_with_nan_values(rs):
     # Call the Cython function
     result = grouped_linear_regression(ind, a, b)
 
-    # Calculate expected result using NumPy/SciPy
+    # Calculate expected cy_result using NumPy/SciPy
     expected_result = linregress(a[mask], b[mask])
 
     assert result.a[1] == pytest.approx(expected_result.slope, rel=1e-4)
@@ -165,7 +165,7 @@ def test_grouped_correlation_pd(ind, v1, v2):
     assert isinstance(result_df, pd.DataFrame)
 
     assert np.all(
-        result_df.columns == ["a", "b", "se_a", "se_b", "t_a", "t_b", "p_a", "p_b"]
+        result_df.columns == ["df", "a", "b", "se_a", "se_b", "t_a", "t_b", "p_a", "p_b"]
     )
 
     for i in result_df.index:

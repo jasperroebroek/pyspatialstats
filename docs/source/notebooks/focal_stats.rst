@@ -1,7 +1,7 @@
 None
 
 .. note:: This tutorial was generated from an IPython notebook that can be
-          downloaded `here <../../../source/notebooks/focal_stats.ipynb>`_.
+          downloaded `here <../../../source/notebooks/focal_stats_base.ipynb>`_.
 
 .. _focal_stats:
 
@@ -10,7 +10,7 @@ Usage example
 
 .. code:: python
 
-    import pyspatialstats.focal_stats as fs
+    import pyspatialstats.focal_stats_base as fs
     import rasterio as rio
     import matplotlib.pyplot as plt
     import numpy as np

@@ -6,13 +6,13 @@ import numpy as np
 
 cimport numpy as np
 from libc.math cimport isnan, NAN
+from libc.stdlib cimport malloc, free
 from pyspatialstats.types.cy_types cimport numeric
 
 
 cpdef void _focal_majority(
     numeric[:, :, :, :] a,
     np.npy_uint8[:, ::1] mask,
-    numeric[:] values,
     double[:, :] r,
     int[:] fringe,
     double threshold,
@@ -20,13 +20,20 @@ cpdef void _focal_majority(
     int mode
 ):
     cdef:
-        size_t i, j, p, q, c, v, count_values, curr_max_count
+        size_t i, j, p, q, c, v, count_values, curr_max_count, num_values
         numeric[:, :] window
         double curr_value
         bint in_store, is_double
         size_t[:] counts
+        numeric* values
 
-    counts = np.zeros(values.shape[0], dtype=np.uintp)
+    num_values = mask.shape[0] * mask.shape[1]
+
+    values = <numeric*> malloc(num_values * sizeof(numeric))
+    if values == NULL:
+        raise MemoryError
+
+    counts = np.zeros(num_values, dtype=np.uintp)
 
     with nogil:
         for i in range(a.shape[0]):
@@ -96,3 +103,5 @@ cpdef void _focal_majority(
                         curr_value = NAN
 
                 r[i, j] = curr_value
+
+    free(values)

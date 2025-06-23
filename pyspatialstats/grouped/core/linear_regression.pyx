@@ -2,7 +2,7 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 
-from pyspatialstats.bootstrap.p_values import calculate_p_value
+from pyspatialstats.stats.p_values import calculate_p_value
 from pyspatialstats.types.results import LinearRegressionResult
 
 from libc.math cimport sqrt, isnan, NAN, pow
@@ -146,29 +146,27 @@ def grouped_linear_regression_npy(size_t[:] ind, double[:] v1, double[:] v2) -> 
         CyGroupedLinearRegressionResult r
         size_t max_ind
 
-    try:
-        with nogil:
-            max_ind = _define_max_ind(ind)
-            r = _grouped_linear_regression(ind, v1, v2, max_ind)
+    with nogil:
+        max_ind = _define_max_ind(ind)
+        r = _grouped_linear_regression(ind, v1, v2, max_ind)
 
-        a = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.a)
-        b = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.b)
-        se_a = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.se_a)
-        se_b = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.se_b)
-        t_a = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.t_a)
-        t_b = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.t_b)
-        df = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_UINTP, r.df)
+    a = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.a)
+    b = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.b)
+    se_a = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.se_a)
+    se_b = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.se_b)
+    t_a = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.t_a)
+    t_b = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_DOUBLE, r.t_b)
+    df = cnp.PyArray_SimpleNewFromData(1, [max_ind + 1], cnp.NPY_UINTP, r.df)
 
-        for x in (a, b, se_a,  se_b, t_a, t_b):
-            cnp.PyArray_ENABLEFLAGS(x, cnp.NPY_ARRAY_OWNDATA)
+    for x in (df, a, b, se_a,  se_b, t_a, t_b):
+        cnp.PyArray_ENABLEFLAGS(x, cnp.NPY_ARRAY_OWNDATA)
 
-        p_a = calculate_p_value(t_a, df)
-        p_b = calculate_p_value(t_b, df)
+    p_a = calculate_p_value(t_a, df)
+    p_b = calculate_p_value(t_b, df)
 
-    finally:
-        free(r.df)
-
-    return LinearRegressionResult(a, b, se_a, se_b, t_a, t_b, p_a, p_b)
+    return LinearRegressionResult(
+        df=df, a=a, b=b, se_a=se_a, se_b=se_b, t_a=t_a, t_b=t_b, p_a=p_a, p_b=p_b
+    )
 
 
 def grouped_linear_regression_npy_filtered(size_t[:] ind, double[:] v1, double[:] v2) -> GroupedLinearRegressionResult:
@@ -228,7 +226,7 @@ def grouped_linear_regression_npy_filtered(size_t[:] ind, double[:] v1, double[:
         t_b = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_DOUBLE, t_b_f)
         df = cnp.PyArray_SimpleNewFromData(1, [num_inds], cnp.NPY_UINTP, df_f)
 
-        for x in (a, b, se_a,  se_b, t_a, t_b):
+        for x in (df, a, b, se_a,  se_b, t_a, t_b):
             cnp.PyArray_ENABLEFLAGS(x, cnp.NPY_ARRAY_OWNDATA)
 
         p_a = calculate_p_value(t_a, df)
@@ -241,7 +239,6 @@ def grouped_linear_regression_npy_filtered(size_t[:] ind, double[:] v1, double[:
         free(se_b_f)
         free(t_a_f)
         free(t_b_f)
-        free(df_f)
 
     finally:
         free(r.df)
@@ -255,5 +252,5 @@ def grouped_linear_regression_npy_filtered(size_t[:] ind, double[:] v1, double[:
         free(count_v2)
 
     return LinearRegressionResult(
-        a=a, b=b, se_a=se_a, se_b=se_b, t_a=t_a, t_b=t_b, p_a=p_a, p_b=p_b
+        df=df, a=a, b=b, se_a=se_a, se_b=se_b, t_a=t_a, t_b=t_b, p_a=p_a, p_b=p_b
     )

@@ -36,7 +36,7 @@ def test_grouped_stats(ind, v, fs, np_fs, stat):
     r = fs(ind, v, n_bootstraps=n_bootstraps, seed=seed)
     rng = RandomInts(seed)
 
-    for i in range(1, int(ind.max()) + 1):
+    for i in range(int(ind.max()) + 1):
         expected_r = np_fs(v[ind == i], n_bootstraps=n_bootstraps, rng=rng)
         assert np.isclose(getattr(r, stat)[i], getattr(expected_r, stat), atol=0.01)
         assert np.isclose(r.se[i], expected_r.se, atol=0.01)
@@ -61,8 +61,7 @@ def test_grouped_stats(ind, v, fs, np_fs, stat):
 #         values_in_group = v[ind == i]
 #         expected_r = np_fs(values_in_group)
 #         assert np.isclose(result_df.loc[i, result_df.columns[0]], expected_r, atol=1e-5)
-#
-#     assert 0 not in result_df.index
+
 
 
 @pytest.mark.parametrize("fs,stat", [(grouped_mean_bootstrap, "mean")])

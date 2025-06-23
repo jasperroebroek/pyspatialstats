@@ -1,5 +1,7 @@
+from typing import Protocol, runtime_checkable
+
 import numpy as np
-from numpy._typing._dtype_like import _SCT
+from numpy._typing._dtype_like import _SCT, _DTypeLike
 
 # ARRAYS
 # generic ndarray types
@@ -15,3 +17,15 @@ RasterBool = np.ndarray[tuple[int, int], np.bool_]
 # generic raster types
 RasterT = np.ndarray[tuple[int, int], np.dtype[_SCT]]
 RasterNumeric = RasterInt32 | RasterInt64 | RasterFloat32 | RasterFloat64
+
+
+@runtime_checkable
+class Array(Protocol):
+    @property
+    def dtype(self) -> _DTypeLike: ...
+    @property
+    def shape(self) -> tuple[int, ...]: ...
+    @property
+    def ndim(self) -> int: ...
+    def __getitem__(self, index: tuple[slice, ...]) -> np.ndarray[tuple[int, ...], np.dtype[_SCT]]: ...
+    def __setitem__(self, index: tuple[slice, ...], value: np.ndarray[tuple[int, ...], np.dtype[_SCT]]) -> None: ...

@@ -1,4 +1,4 @@
-.. focal_stats documentation master file, created by
+.. focal_stats_base documentation master file, created by
    sphinx-quickstart on Wed Dec  1 14:19:25 2021.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
@@ -11,7 +11,7 @@ This module aims to provide focal statistics for python, that runs without the i
 
 The package implements three different categories of spatial statistics:
 
-* focal statistics (:mod:`pyspatialstats.focal_stats`), which are calculated as a moving window over input rasters (2D)
+* focal statistics (:mod:`pyspatialstats.focal_stats_base`), which are calculated as a moving window over input rasters (2D)
 * grouped statistics (:mod:`pyspatialstats.grouped_stats`), which calculates the statistics based on strata (xD)
 * strata statistics (:mod:`pyspatialstats.strata_stats`), which calculates the statistics for each stratum and reapplies it to the input raster (2D). This depends on the grouped statistics module.
 
@@ -36,7 +36,7 @@ Documentation
    :maxdepth: 2
    :caption: Tutorials
 
-   notebooks/focal_stats
+   notebooks/focal_stats_base
    notebooks/custom_focal_stats
 
 .. toctree::
