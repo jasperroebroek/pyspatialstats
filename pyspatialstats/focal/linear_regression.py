@@ -72,7 +72,7 @@ def focal_linear_regression(
         - An integer (interpreted as a square window),
         - A sequence of integers (interpreted as a rectangular window),
         - A boolean array,
-        - Or a :class:`pyspatialstats.window.Window` object.
+        - Or a :class:`pyspatialstats.windows.Window` object.
     fraction_accepted : float, optional
         Fraction of valid (non-NaN) cells per window required for regression to be performed.
 

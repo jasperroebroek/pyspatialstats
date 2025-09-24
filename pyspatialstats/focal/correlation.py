@@ -64,7 +64,7 @@ def focal_correlation(
         - An integer (interpreted as a square window),
         - A sequence of integers (interpreted as a rectangular window),
         - A boolean array,
-        - Or a :class:`pyspatialstats.window.Window` object.
+        - Or a :class:`pyspatialstats.windows.Window` object.
     fraction_accepted : float, optional
         Fraction of valid cells (i.e., not NaN) per window required for the correlation to be computed.
 

@@ -11,9 +11,9 @@ This module aims to provide focal statistics for python, that runs without the i
 
 The package implements three different categories of spatial statistics:
 
-* focal statistics (:mod:`pyspatialstats.focal_stats_base`), which are calculated as a moving window over input rasters (2D)
-* grouped statistics (:mod:`pyspatialstats.grouped_stats`), which calculates the statistics based on strata (xD)
-* strata statistics (:mod:`pyspatialstats.strata_stats`), which calculates the statistics for each stratum and reapplies it to the input raster (2D). This depends on the grouped statistics module.
+* focal statistics (:mod:`pyspatialstats.focal`), which are calculated as a moving window over input rasters (2D)
+* grouped statistics (:mod:`pyspatialstats.grouped`), which calculates the statistics based on group indices (xD)
+* zonal statistics (:mod:`pyspatialstats.zonal`), which calculates the statistics for each group index and reapplies it to the input raster (2D). This depends on the grouped statistics module.
 
 
 *************
@@ -36,14 +36,8 @@ Documentation
    :maxdepth: 2
    :caption: Tutorials
 
-   notebooks/focal_stats_base
+   notebooks/focal_stats
    notebooks/custom_focal_stats
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Modules
-
-   modules
 
 .. toctree::
    :maxdepth: 2

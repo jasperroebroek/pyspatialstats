@@ -21,7 +21,7 @@ def rolling_sum(
         Array to create the sliding window view from.
     window : int, array-like, Window
         Window that is applied over `a`. It can be an integer or a sequence of integers, which will be interpreted as
-        a rectangular window, a boolean array or a :class:`pyspatialstats.window.Window` object.
+        a rectangular window, a boolean array or a :class:`pyspatialstats.windows.Window` object.
     reduce : bool, optional
         Reuse data if set to False (which is the default) in which case an array will be returned with dimensions that
         are close to the input array. If set to True, every entry is used exactly once, meaning that the sliding windows
@@ -88,7 +88,7 @@ def rolling_mean(
         Array to create the sliding window view from.
     window : int, array-like, Window
         Window that is applied over `a`. It can be an integer or a sequence of integers, which will be interpreted as
-        a rectangular window, a boolean array or a :class:`pyspatialstats.window.Window` object.
+        a rectangular window, a boolean array or a :class:`pyspatialstats.windows.Window` object.
     reduce : bool, optional
         Reuse data if set to False (which is the default) in which case an array will be returned with dimensions that
         are close to the input array. If set to True, every entry is used exactly once, meaning that the sliding windows

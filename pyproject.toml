@@ -4,12 +4,13 @@ requires = [
     "wheel",
     "cython",
     "numpy",
+    "scipy"
 ]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyspatialstats"
-version = "0.0.3"
+version = "0.1.0"
 description = ""
 authors = [
     { name = "Jasper Roebroek", email = "roebroek.jasper@gmail.com" }

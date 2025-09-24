@@ -25,7 +25,7 @@ def rolling_window(
         Array to create the sliding window view from.
     window : int, array-like, Window
         Window that is applied over `a`. It can be an integer or a sequence of integers, which will be interpreted as
-        a rectangular window, a boolean array or a :class:`pyspatialstats.window.Window` object. The output will be of
+        a rectangular window, a boolean array or a :class:`pyspatialstats.windows.Window` object. The output will be of
         dimension ``a.ndim + a.ndim``. If a mask is provided (or a Window that is masked), it will be used to flatten
         `a_view`, resulting in dimensionality ``a.ndim + 1`` as the final cy_result, just as in the case of `flatten` is
         True.

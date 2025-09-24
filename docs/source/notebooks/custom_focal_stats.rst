@@ -10,7 +10,7 @@ Creating custom focal statistic function
 
 .. code:: python
 
-    import pyspatialstats.focal_stats_base as fs
+    import pyspatialstats.focal as fs
     import pyspatialstats.rolling as rolling
     import rasterio as rio
     import matplotlib.pyplot as plt
@@ -19,13 +19,13 @@ Creating custom focal statistic function
 
 .. code:: python
 
-    os.chdir("../../../")
+    os.chdir('../../../')
 
 Loading raster (containing water table depth (Fan et al., 2017)).
 
 .. code:: python
 
-    with rio.open("data/wtd.tif") as f:
+    with rio.open('data/wtd.tif') as f:
         a = f.read(1).astype(np.float64)
         a[a == -999.9] = np.nan
 
@@ -34,7 +34,7 @@ Inspecting the data
 .. code:: python
 
     plt.imshow(a, cmap='Blues', vmax=100)
-    plt.title("Water table depth")
+    plt.title('Water table depth')
     plt.colorbar()
 
 
@@ -42,7 +42,7 @@ Inspecting the data
 
 .. parsed-literal::
 
-    <matplotlib.colorbar.Colorbar at 0x1526da600>
+    <matplotlib.colorbar.Colorbar at 0x154d85010>
 
 
 
@@ -102,7 +102,7 @@ close to the original raster, with some limited smoothing
 
 .. code:: python
 
-    plt.imshow(a_mean, cmap="Blues", vmax=100)
+    plt.imshow(a_mean, cmap='Blues', vmax=100)
     plt.colorbar()
 
 
@@ -110,7 +110,7 @@ close to the original raster, with some limited smoothing
 
 .. parsed-literal::
 
-    <matplotlib.colorbar.Colorbar at 0x152767110>
+    <matplotlib.colorbar.Colorbar at 0x154f62c10>
 
 
 
@@ -131,7 +131,7 @@ codebase
 
 .. code:: python
 
-    plt.imshow(fs.focal_mean(a, window=5), cmap="Blues", vmax=100)
+    plt.imshow(fs.focal_mean(a, window=5).mean, cmap='Blues', vmax=100)
     plt.colorbar()
 
 
@@ -139,7 +139,7 @@ codebase
 
 .. parsed-literal::
 
-    <matplotlib.colorbar.Colorbar at 0x1528af770>
+    <matplotlib.colorbar.Colorbar at 0x15504ccd0>
 
 
 

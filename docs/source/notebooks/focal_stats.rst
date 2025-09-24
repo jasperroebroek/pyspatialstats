@@ -1,7 +1,7 @@
 None
 
 .. note:: This tutorial was generated from an IPython notebook that can be
-          downloaded `here <../../../source/notebooks/focal_stats_base.ipynb>`_.
+          downloaded `here <../../../source/notebooks/focal_stats.ipynb>`_.
 
 .. _focal_stats:
 
@@ -10,7 +10,7 @@ Usage example
 
 .. code:: python
 
-    import pyspatialstats.focal_stats_base as fs
+    import pyspatialstats.focal as fs
     import rasterio as rio
     import matplotlib.pyplot as plt
     import numpy as np
@@ -18,13 +18,13 @@ Usage example
 
 .. code:: python
 
-    os.chdir("../../../")
+    os.chdir('../../../')
 
 Loading raster (containing water table depth (Fan et al., 2017)).
 
 .. code:: python
 
-    with rio.open("data/wtd.tif") as f:
+    with rio.open('data/wtd.tif') as f:
         a = f.read(1).astype(np.float64)
         a[a == -999.9] = np.nan
 
@@ -33,7 +33,7 @@ Inspecting the data
 .. code:: python
 
     plt.imshow(a, cmap='Blues', vmax=100)
-    plt.title("Water table depth")
+    plt.title('Water table depth')
     plt.colorbar()
 
 
@@ -41,7 +41,7 @@ Inspecting the data
 
 .. parsed-literal::
 
-    <matplotlib.colorbar.Colorbar at 0x159391970>
+    <matplotlib.colorbar.Colorbar at 0x153e75010>
 
 
 
@@ -56,14 +56,14 @@ Calculation of the focal mean:
 
 .. code:: python
 
-    plt.imshow(fs.focal_mean(a, window=15), vmax=100, cmap="Blues")
+    plt.imshow(fs.focal_mean(a, window=15).mean, vmax=100, cmap='Blues')
 
 
 
 
 .. parsed-literal::
 
-    <matplotlib.image.AxesImage at 0x15946e960>
+    <matplotlib.image.AxesImage at 0x153fee850>
 
 
 
@@ -76,14 +76,14 @@ applied. Let’s try a higher window, which should increase the smoothing
 
 .. code:: python
 
-    plt.imshow(fs.focal_mean(a, window=101), vmax=100, cmap="Blues")
+    plt.imshow(fs.focal_mean(a, window=25).mean, vmax=100, cmap='Blues')
 
 
 
 
 .. parsed-literal::
 
-    <matplotlib.image.AxesImage at 0x159404c50>
+    <matplotlib.image.AxesImage at 0x15407a210>
 
 
 
@@ -96,15 +96,15 @@ based on this window.
 
 .. code:: python
 
-    x = fs.focal_mean(a, window=108, reduce=True)
-    plt.imshow(x, vmax=100, cmap="Blues")
+    x = fs.focal_mean(a, window=108, reduce=True).mean
+    plt.imshow(x, vmax=100, cmap='Blues')
 
 
 
 
 .. parsed-literal::
 
-    <matplotlib.image.AxesImage at 0x15958bf50>
+    <matplotlib.image.AxesImage at 0x1541056d0>
 
 
 
@@ -115,3 +115,5 @@ based on this window.
 The shape of this new raster is exactly 108 times smaller than the input
 raster. Note that for this to work both x and y-axes need to be
 divisible by the window size.
+
+

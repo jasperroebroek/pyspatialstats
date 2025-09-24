@@ -24,7 +24,7 @@ conda install --channel conda-forge pyspatialstats
 Focal mean of a 100x100 random numpy array.
 
 ```
-from pyspatialstats.focal_stats_base import focal_mean
+from pyspatialstats.focal_base import focal_mean
 import numpy as np
 
 x = np.random.rand(100, 100)

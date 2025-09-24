@@ -1,4 +1,4 @@
-.. currentmodule:: focal_stats_base
+.. currentmodule:: focal
 
 #############
 API reference
@@ -7,10 +7,10 @@ API reference
 Focal statistics
 ================
 
-This module provides focal statistics functionality, similar to the methods in the ArcGIS software. The various functions in this module accept a 2D array as input data. The sliding window characteristics (dimensions and masking) are provided through the ``window`` keyword. This accepts either an integer, a boolean mask, or a :class:`focal_stats_base.window.Window` object. The functions return an array, either of the same dimensions as the input data, or an array of smaller dimensions if the ``reduce`` parameter is used. This allows for a non-overlapping sliding window. :func:`focal_correlation` calculates the correlation between two arrays in contrast to the other functions that operate on a single array.
+This module provides focal statistics functionality, similar to the methods in the ArcGIS software. The various functions in this module accept a 2D array as input data. The sliding window characteristics (dimensions and masking) are provided through the ``window`` keyword. This accepts either an integer, a boolean mask, or a :class:`pyspatialstats.windows.Window` object. The functions return an array, either of the same dimensions as the input data, or an array of smaller dimensions if the ``reduce`` parameter is used. This allows for a non-overlapping sliding window. :func:`focal_correlation` calculates the correlation between two arrays in contrast to the other functions that operate on a single array.
 
 .. autosummary::
-    :toctree: generated/focal_statistics
+    :toctree: generated/focal
 
     focal_sum
     focal_min
@@ -24,53 +24,39 @@ This module provides focal statistics functionality, similar to the methods in t
 Grouped statistics
 ==================
 
-.. currentmodule:: grouped_stats
+.. currentmodule:: grouped
 
-This module provides functions that calculate statistics based on strata, allowing for data of any dimensionality. To use these functions, you must provide an array ``ind`` with the same shape as the data, which represent the strata index.
-
-For each statistic, two functions are available:
-
-#. Array-based output: Returns a NumPy array where each index corresponds to the stratum.
-#. DataFrame-based output: Returns a Pandas DataFrame where the index only includes the actual strata, and the calculated statistic values are stored in the columns.
+This module provides functions that calculate statistics based on group indices, allowing for data of any dimensionality. To use these functions, you must provide an array ``ind`` with the same shape as the data, which represent the index.
 
 .. autosummary::
     :toctree: generated/grouped_stats
 
     grouped_count
-    grouped_count_pd
     grouped_min
-    grouped_min_pd
     grouped_max
-    grouped_max_pd
     grouped_mean
-    grouped_mean_pd
     grouped_std
-    grouped_std_pd
-    grouped_mean_std_pd
     grouped_correlation
-    grouped_correlation_pd
     grouped_linear_regression
-    grouped_linear_regression_pd
 
 
-Strata statistics
+Zonal statistics
 =================
 
-.. currentmodule:: strata_stats
+.. currentmodule:: zonal
 
-This module implements functions that calculates statistics for each stratum and reapplies it to the input raster. This depends on the grouped statistics module. It is only available on 2D data.
+This module implements functions that calculates statistics for each group index and reapplies it to the input raster. This depends on the grouped statistics module. It is only available on 2D data.
 
 .. autosummary::
-    :toctree: generated/strata_stats
+    :toctree: generated/zonal
 
-    strata_count
-    strata_min
-    strata_max
-    strata_mean
-    strata_std
-    strata_mean_std
-    strata_correlation
-    strata_linear_regression
+    zonal_count
+    zonal_min
+    zonal_max
+    zonal_mean
+    zonal_std
+    zonal_correlation
+    zonal_linear_regression
 
 
 Rolling functions
@@ -91,13 +77,13 @@ This module provides rolling functions that can process ND arrays. These functio
 Windows
 =======
 
-.. currentmodule:: window
+.. currentmodule:: windows
 
-The sliding window methods as described above are implemented in this module, through the :class:`focal_stats_base.window.Window` class. Two concrete implementations are provided: RectangularWindow and MaskedWindow. Custom implementations can be provided by subclassing the :class:`focal_stats_base.window.Window` class, implementing the ``get_shape`` and ``get_mask`` methods and the ``masked`` property.
+The sliding window methods as described above are implemented in this module, through the :class:`pyspatialstats.windows.Window` class. Two concrete implementations are provided: `RectangularWindow` and `MaskedWindow`. Custom implementations can be provided by subclassing the :class:`pyspatialstats.windows.Window` class, implementing the ``get_shape`` and ``get_mask`` methods and the ``masked`` property.
 
 
 .. autosummary::
-    :toctree: generated/window
+    :toctree: generated/windows
 
     RectangularWindow
     MaskedWindow
