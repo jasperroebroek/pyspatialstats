@@ -2,84 +2,92 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 
+from libc.stdlib cimport free
 import numpy as np
 cimport numpy as np
-from libc.math cimport isnan, sqrt
-from pyspatialstats.types.cy_types cimport numeric_v1, numeric_v2
+from libc.math cimport isnan
+from pyspatialstats.stats.linear_regression cimport (
+    LinearRegressionState, LinearRegressionResult, lrs_reset, lrs_add, lrs_to_result, lrs_new, lrr_new
+)
 
 
 cpdef void _focal_linear_regression(
-    numeric_v1[:, :, :, :] a1,
-    numeric_v2[:, :, :, :] a2,
+    double[:, :, :, :, :, :] x,
+    double[:, :, :, :] y,
     np.npy_uint8[:, ::1] mask,
-    # return rasters
-    double[:, :] a,
-    double[:, :] b,
-    double[:, :] se_a,
-    double[:, :] se_b,
-    double[:, :] t_a,
-    double[:, :] t_b,
-    size_t[:, :] df,
-    # parameters
+    double[:, :, :] beta,
+    double[:, :, :] beta_se,
+    double[:, :] r_squared,
+    double[:, :] df,
     int[:] fringe,
     double threshold,
     bint reduce
 ):
     cdef:
-        size_t i, j, p, q, count
-        double sum_a1, sum_a2, sum_a1_a2, sum_a1_squared, sum_residuals_squared, se, ss_a1_residuals
-        numeric_v1[:, :] a1_window
-        numeric_v2[:, :] a2_window
+        size_t i, j, k, r, q, nf = x.shape[5] + 1
+        bint valid
+        double[:, :, :] x_window
+        double[:, :] y_window
+        LinearRegressionState* lrs = lrs_new(nf)
+        LinearRegressionResult* lrr = lrr_new(nf)
 
-    threshold = threshold if threshold > 2 else 2
+    if lrs is NULL or lrr is NULL:
+        free(lrs)
+        free(lrr)
+        raise MemoryError("Failed to allocate memory for linear regression state and/or result")
+
+    threshold = threshold if threshold > nf else nf
 
     with nogil:
-        for i in range(a1.shape[0]):
-            for j in range(a1.shape[1]):
-                a1_window = a1[i, j]
-                a2_window = a2[i, j]
+        for i in range(y.shape[0]):
+            for j in range(y.shape[1]):
+                df[i, j] = 0
 
-                if not reduce and (isnan(a1_window[fringe[0], fringe[1]]) or isnan(a2_window[fringe[0], fringe[1]])):
-                    continue
+                x_window = x[i, j, 0]
+                y_window = y[i, j]
 
-                count = 0
-                sum_a1 = 0
-                sum_a2 = 0
-                sum_a1_a2 = 0
-                sum_a1_squared = 0
-                sum_a2_squared = 0
-                sum_residuals_squared = 0
-                ss_a1_residuals = 0
+                if not reduce:
+                    if isnan(y_window[fringe[0], fringe[1]]):
+                        continue
+                    valid = True
+                    for k in range(nf - 1):
+                        if isnan(x_window[fringe[0], fringe[1], k]):
+                            valid = False
+                            break
+                    if not valid:
+                        continue
 
-                for p in range(mask.shape[0]):
+                lrs_reset(lrs)
+
+                for r in range(mask.shape[0]):
                     for q in range(mask.shape[1]):
-                        if isnan(a1_window[p, q]) or isnan(a2_window[p, q]) or not mask[p, q]:
+                        if not mask[r, q]:
                             continue
-                        count += 1
-                        sum_a1 += a1_window[p, q]
-                        sum_a2 += a2_window[p, q]
-                        sum_a1_a2 += a1_window[p, q] * a2_window[p, q]
-                        sum_a1_squared += a1_window[p, q] * a1_window[p, q]
 
-                if count < threshold:
+                        if isnan(y_window[r, q]):
+                            continue
+
+                        valid = True
+                        for k in range(nf - 1):
+                            if isnan(x_window[r, q, k]):
+                                valid = False
+                                break
+                        if not valid:
+                            continue
+
+                        lrs_add(lrs, y_window[r, q], x_window[r, q])
+
+                if lrs.count < threshold:
                     continue
 
-                df[i, j] = count - 2
+                lrs_to_result(lrs, lrr)
 
-                a[i, j] = (count * sum_a1_a2 - sum_a1 * sum_a2) / (count * sum_a1_squared - (sum_a1 * sum_a1))
-                b[i, j] = (sum_a2 - a[i, j] * sum_a1) / count
+                df[i, j] = lrr.df
+                r_squared[i, j] = lrr.r_squared
 
-                for p in range(mask.shape[0]):
-                    for q in range(mask.shape[1]):
-                        if not isnan(a1_window[p, q]) and not isnan(a2_window[p, q]) and mask[p, q]:
-                            residual = a2_window[p, q] - (a[i, j] * a1_window[p, q] + b[i, j])
-                            sum_residuals_squared += residual * residual
+                for k in range(nf):
+                    beta[i, j, k] = lrr.beta[k]
+                    beta_se[i, j, k] = lrr.beta_se[k]
 
-                se = sqrt(sum_residuals_squared / (count - 2))
-                ss_a1_residuals = sum_a1_squared - (sum_a1 ** 2) / count
-
-                se_a[i, j] = se / sqrt(ss_a1_residuals)
-                se_b[i, j] = se * sqrt((1.0 / count) + ((sum_a1 / count) ** 2) / ss_a1_residuals)
-
-                t_a[i, j] = a[i, j] / se_a[i, j]
-                t_b[i, j] = b[i, j] / se_b[i, j]
+    free(lrs)
+    free(lrr)

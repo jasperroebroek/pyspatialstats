@@ -1,10 +1,10 @@
 import pytest
 
 from pyspatialstats.views import (
-    RasterView,
-    RasterViewPair,
-    construct_tile_views,
+    ArrayView,
+    ArrayViewPair,
     construct_window_views,
+    construct_windowed_tile_views,
 )
 from pyspatialstats.windows import define_window
 
@@ -14,7 +14,7 @@ def test_window_view_definition_errors():
         construct_window_views((1, 1), window=0, reduce=False)
 
 
-@pytest.mark.parametrize("ws", [3, 5, 7])
+@pytest.mark.parametrize('ws', [3, 5, 7])
 def test_window_view_definition_reduce(ws):
     wps = list(construct_window_views((ws * 2, ws * 2), window=ws, reduce=True))
 
@@ -22,26 +22,22 @@ def test_window_view_definition_reduce(ws):
 
     for wp in wps:
         assert wp in [
-            RasterViewPair(
-                input=RasterView(col_off=0, row_off=0, width=ws, height=ws),
-                output=RasterView(col_off=0, row_off=0, width=1, height=1),
+            ArrayViewPair(
+                input=ArrayView(offset=(0, 0), shape=(ws, ws)), output=ArrayView(offset=(0, 0), shape=(1, 1))
             ),
-            RasterViewPair(
-                input=RasterView(col_off=ws, row_off=0, width=ws, height=ws),
-                output=RasterView(col_off=1, row_off=0, width=1, height=1),
+            ArrayViewPair(
+                input=ArrayView(offset=(ws, 0), shape=(ws, ws)), output=ArrayView(offset=(1, 0), shape=(1, 1))
             ),
-            RasterViewPair(
-                input=RasterView(col_off=0, row_off=ws, width=ws, height=ws),
-                output=RasterView(col_off=0, row_off=1, width=1, height=1),
+            ArrayViewPair(
+                input=ArrayView(offset=(0, ws), shape=(ws, ws)), output=ArrayView(offset=(0, 1), shape=(1, 1))
             ),
-            RasterViewPair(
-                input=RasterView(col_off=ws, row_off=ws, width=ws, height=ws),
-                output=RasterView(col_off=1, row_off=1, width=1, height=1),
+            ArrayViewPair(
+                input=ArrayView(offset=(ws, ws), shape=(ws, ws)), output=ArrayView(offset=(1, 1), shape=(1, 1))
             ),
         ]
 
 
-@pytest.mark.parametrize("ws", [3, 5, 7])
+@pytest.mark.parametrize('ws', [3, 5, 7])
 def test_window_view_definition_non_reduce(ws):
     window = define_window(ws)
     fringes = window.get_fringes(reduce=False)
@@ -52,29 +48,21 @@ def test_window_view_definition_non_reduce(ws):
 
     for wp in wps:
         assert wp in [
-            RasterViewPair(
-                input=RasterView(col_off=0, row_off=0, width=ws, height=ws),
-                output=RasterView(
-                    col_off=fringes[1], row_off=fringes[0], width=1, height=1
-                ),
+            ArrayViewPair(
+                input=ArrayView(offset=(0, 0), shape=(ws, ws)),
+                output=ArrayView(offset=(fringes[1], fringes[0]), shape=(1, 1)),
             ),
-            RasterViewPair(
-                input=RasterView(col_off=1, row_off=0, width=ws, height=ws),
-                output=RasterView(
-                    col_off=fringes[1] + 1, row_off=fringes[0], width=1, height=1
-                ),
+            ArrayViewPair(
+                input=ArrayView(offset=(1, 0), shape=(ws, ws)),
+                output=ArrayView(offset=(fringes[1] + 1, fringes[0]), shape=(1, 1)),
             ),
-            RasterViewPair(
-                input=RasterView(col_off=0, row_off=1, width=ws, height=ws),
-                output=RasterView(
-                    col_off=fringes[1], row_off=fringes[0] + 1, width=1, height=1
-                ),
+            ArrayViewPair(
+                input=ArrayView(offset=(0, 1), shape=(ws, ws)),
+                output=ArrayView(offset=(fringes[1], fringes[0] + 1), shape=(1, 1)),
             ),
-            RasterViewPair(
-                input=RasterView(col_off=1, row_off=1, width=ws, height=ws),
-                output=RasterView(
-                    col_off=fringes[1] + 1, row_off=fringes[0] + 1, width=1, height=1
-                ),
+            ArrayViewPair(
+                input=ArrayView(offset=(1, 1), shape=(ws, ws)),
+                output=ArrayView(offset=(fringes[1] + 1, fringes[0] + 1), shape=(1, 1)),
             ),
         ]
 
@@ -88,32 +76,23 @@ def test_tile_view_perfect_fit():
     tile_shape = (6, 6)
     tile_output_shape = (tile_shape[0] - 2 * fringes[0], tile_shape[1] - 2 * fringes[1])
 
-    views = construct_tile_views(raster_shape, tile_shape, 3, reduce=False)
+    views = construct_windowed_tile_views(raster_shape, tile_shape, 3, reduce=False)
 
     assert len(views) == 4
 
-    assert views[0] == RasterViewPair(
-        input=RasterView(col_off=0, row_off=0, width=6, height=6),
-        output=RasterView(
-            col_off=fringes[1],
-            row_off=fringes[0],
-            width=tile_output_shape[1],
-            height=tile_output_shape[0],
-        ),
+    assert views[0] == ArrayViewPair(
+        input=ArrayView(offset=(0, 0), shape=(6, 6)),
+        output=ArrayView(offset=(fringes[1], fringes[0]), shape=tile_output_shape),
     )
 
-    assert views[-1] == RasterViewPair(
-        input=RasterView(
-            col_off=raster_shape[1] - tile_shape[1],
-            row_off=raster_shape[0] - tile_shape[0],
-            width=6,
-            height=6,
+    assert views[-1] == ArrayViewPair(
+        input=ArrayView(
+            offset=(raster_shape[1] - tile_shape[1], raster_shape[0] - tile_shape[0]),
+            shape=(6, 6),
         ),
-        output=RasterView(
-            col_off=fringes[1] + raster_shape[1] - tile_shape[1],
-            row_off=fringes[0] + raster_shape[0] - tile_shape[0],
-            width=tile_output_shape[1],
-            height=tile_output_shape[0],
+        output=ArrayView(
+            offset=(fringes[1] + raster_shape[1] - tile_shape[1], fringes[0] + raster_shape[0] - tile_shape[0]),
+            shape=tile_output_shape,
         ),
     )
 
@@ -127,23 +106,17 @@ def test_tile_view_not_fitting():
     tile_shape = (6, 6)
     tile_output_shape = (tile_shape[0] - 2 * fringes[0], tile_shape[1] - 2 * fringes[1])
 
-    views = construct_tile_views(raster_shape, tile_shape, window, reduce=False)
+    views = construct_windowed_tile_views(raster_shape, tile_shape, window, reduce=False)
 
     assert len(views) == 9
 
-    assert views[0] == RasterViewPair(
-        input=RasterView(col_off=0, row_off=0, width=6, height=6),
-        output=RasterView(
-            col_off=fringes[1],
-            row_off=fringes[0],
-            width=tile_output_shape[1],
-            height=tile_output_shape[0],
-        ),
+    assert views[0] == ArrayViewPair(
+        input=ArrayView(offset=(0, 0), shape=(6, 6)),
+        output=ArrayView(offset=(fringes[1], fringes[0]), shape=tile_output_shape),
     )
 
-    assert views[-1] == RasterViewPair(
-        input=RasterView(col_off=8, row_off=8, width=5, height=5),
-        output=RasterView(col_off=9, row_off=9, width=3, height=3),
+    assert views[-1] == ArrayViewPair(
+        input=ArrayView(offset=(8, 8), shape=(5, 5)), output=ArrayView(offset=(9, 9), shape=(3, 3))
     )
 
 
@@ -154,18 +127,17 @@ def test_tiles_view_reduce_perfect_fit():
     raster_shape = (12, 12)
     tile_shape = (6, 6)
 
-    views = construct_tile_views(raster_shape, tile_shape, window, reduce=True)
+    views = construct_windowed_tile_views(raster_shape, tile_shape, window, reduce=True)
 
     assert len(views) == 4
 
-    assert views[0] == RasterViewPair(
-        input=RasterView(col_off=0, row_off=0, width=6, height=6),
-        output=RasterView(col_off=0, row_off=0, width=3, height=3),
+    assert views[0] == ArrayViewPair(
+        input=ArrayView(offset=(0, 0), shape=(6, 6)),
+        output=ArrayView(offset=(0, 0), shape=(3, 3)),
     )
 
-    assert views[-1] == RasterViewPair(
-        input=RasterView(col_off=6, row_off=6, width=6, height=6),
-        output=RasterView(col_off=3, row_off=3, width=3, height=3),
+    assert views[-1] == ArrayViewPair(
+        input=ArrayView(offset=(6, 6), shape=(6, 6)), output=ArrayView(offset=(3, 3), shape=(3, 3))
     )
 
 
@@ -176,16 +148,15 @@ def test_tiles_view_reduce_not_fitting():
     raster_shape = (10, 10)
     tile_shape = (6, 6)
 
-    views = construct_tile_views(raster_shape, tile_shape, window, reduce=True)
+    views = construct_windowed_tile_views(raster_shape, tile_shape, window, reduce=True)
 
     assert len(views) == 4
 
-    assert views[0] == RasterViewPair(
-        input=RasterView(col_off=0, row_off=0, width=6, height=6),
-        output=RasterView(col_off=0, row_off=0, width=3, height=3),
+    assert views[0] == ArrayViewPair(
+        input=ArrayView(offset=(0, 0), shape=(6, 6)),
+        output=ArrayView(offset=(0, 0), shape=(3, 3)),
     )
 
-    assert views[-1] == RasterViewPair(
-        input=RasterView(col_off=6, row_off=6, width=4, height=4),
-        output=RasterView(col_off=3, row_off=3, width=2, height=2),
+    assert views[-1] == ArrayViewPair(
+        input=ArrayView(offset=(6, 6), shape=(4, 4)), output=ArrayView(offset=(3, 3), shape=(2, 2))
     )

@@ -1,7 +1,7 @@
 from functools import partial
 from typing import Optional
 
-from pyspatialstats.focal.focal_core import focal_stats, focal_stats_base
+from pyspatialstats.focal._core import focal_stats, focal_stats_base
 from pyspatialstats.focal.core.sum import _focal_sum
 from pyspatialstats.types.arrays import Array, RasterFloat64
 from pyspatialstats.types.windows import WindowT
@@ -17,7 +17,7 @@ def focal_sum(
     verbose: bool = False,  # noqa
     reduce: bool = False,
     chunks: Optional[int | tuple[int, int]] = None,
-    out: Optional[Array] = None
+    out: Optional[Array] = None,
 ) -> RasterFloat64:
     """
     Focal sum
@@ -56,8 +56,8 @@ def focal_sum(
     :obj:`~numpy.ndarray`
     """
     return focal_stats(
-        a,
-        func=partial(focal_stats_base, cy_func=_focal_sum),
+        data={'a': a},
+        func=partial(focal_stats_base, stat_func=_focal_sum),
         window=window,
         fraction_accepted=fraction_accepted,
         reduce=reduce,

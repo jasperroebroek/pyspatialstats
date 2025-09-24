@@ -2,10 +2,10 @@ from typing import Optional
 
 import numpy as np
 
+from pyspatialstats.focal._core import focal_stats, focal_stats_base
 from pyspatialstats.focal.core.correlation import _focal_correlation
-from pyspatialstats.focal.focal_core import focal_stats, focal_stats_base
 from pyspatialstats.focal.result_config import FocalCorrelationResultConfig
-from pyspatialstats.types.results import CorrelationResult
+from pyspatialstats.results.stats import CorrelationResult
 from pyspatialstats.stats.p_values import calculate_p_value
 from pyspatialstats.types.arrays import Array
 from pyspatialstats.types.windows import WindowT
@@ -13,8 +13,7 @@ from pyspatialstats.utils import timeit
 
 
 def _focal_correlation_base(
-    a1: Array,
-    a2: Array,
+    data: dict[str, Array],
     *,
     window: WindowT,
     fraction_accepted: float,
@@ -23,9 +22,8 @@ def _focal_correlation_base(
     out: Optional[CorrelationResult],
 ) -> CorrelationResult:
     r: CorrelationResult = focal_stats_base(
-        a1,
-        a2,
-        cy_func=_focal_correlation,
+        data=data,
+        stat_func=_focal_correlation,
         window=window,
         fraction_accepted=fraction_accepted,
         reduce=reduce,
@@ -93,8 +91,7 @@ def focal_correlation(
         Dataclass containing correlation coefficients (and optionally p-values).
     """
     return focal_stats(
-        a1,
-        a2,
+        data={'a1': a1, 'a2': a2},
         func=_focal_correlation_base,
         window=window,
         fraction_accepted=fraction_accepted,

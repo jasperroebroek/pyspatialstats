@@ -14,7 +14,7 @@ def rolling_window(
     **kwargs,
 ) -> np.ndarray:
     """
-    Takes an array and returns a windowed version, similar to :cy_func:`numpy.lib.stride_tricks.as_strided`. If flatten is
+    Takes an array and returns a windowed version, similar to :stat_func:`numpy.lib.stride_tricks.as_strided`. If flatten is
     True, or a masked window is provided, the windowed view will be flattened, resulting in an array that has only one
     dimension more than the input array. This will require a copy of the data, increasing the memory usage. This can be
     problematic for large arrays and large window sizes.
@@ -41,7 +41,7 @@ def rolling_window(
         are close to the input array. If set to True, every entry is used exactly once, meaning that the sliding windows
         do not overlap each other. This creating much smaller output array.
     kwargs : dict, optional
-        Arguments for :cy_func:`~numpy.lib.stride_tricks.as_strided`, notably ``subok`` and ``writeable`` (see numpy
+        Arguments for :stat_func:`~numpy.lib.stride_tricks.as_strided`, notably ``subok`` and ``writeable`` (see numpy
         documentation).
 
     Returns
@@ -68,7 +68,7 @@ def rolling_window(
         output_shape = np.r_[np.subtract(a.shape, window_shape) + 1, window_shape]
         output_strides = np.r_[a.strides, a.strides]
 
-    # create view on the data with new raster_shape and strides
+    # create view on the data with new data_shape and strides
     strided_a = as_strided(a, shape=output_shape, strides=output_strides, **kwargs)
 
     if window.masked or flatten:

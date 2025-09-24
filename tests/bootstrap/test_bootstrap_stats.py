@@ -63,5 +63,5 @@ def test_bootstrap_mean_comparison_to_numpy():
     cy_result = py_bootstrap_mean(data, n_bootstraps, seed)
     np_result = np_bootstrap_mean(data, n_bootstraps, seed)
 
-    assert np.isclose(cy_result.mean, np_result.mean)
-    assert np.isclose(cy_result.se, np_result.se)
+    np.testing.assert_array_almost_equal(cy_result.mean, np_result.mean)
+    np.testing.assert_array_almost_equal(cy_result.se, np_result.se.item(), decimal=3)

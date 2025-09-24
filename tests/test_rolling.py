@@ -51,9 +51,7 @@ def test_rolling_list_window_dimensions(rs):
     assert rolling_window(c, window=[5, 5, 2], reduce=True, flatten=True).shape == shape
 
     shape = (1, 1, 1, 1, 625)
-    assert (
-        rolling_window(d, window=[5, 5, 5, 5], reduce=True, flatten=True).shape == shape
-    )
+    assert rolling_window(d, window=[5, 5, 5, 5], reduce=True, flatten=True).shape == shape
 
 
 def test_rolling_window_dimensions_mask(rs):
@@ -120,16 +118,10 @@ def test_rolling_values_mask(rs):
     assert rolling_window(a, window=mask_a)[1, 0] == a[1:6][mask_a][0]
     assert rolling_window(a, window=mask_a, reduce=True)[1, 0] == a[5:][mask_a][0]
     assert rolling_window(a, window=mask_a, flatten=True)[1, 0] == a[1:6][mask_a][0]
-    assert (
-        rolling_window(a, window=mask_a, reduce=True, flatten=True)[1, 0]
-        == a[5:][mask_a][0]
-    )
+    assert rolling_window(a, window=mask_a, reduce=True, flatten=True)[1, 0] == a[5:][mask_a][0]
 
     assert rolling_window(b, window=mask_b)[1, 0, 0] == b[1:6, 0:10][mask_b][0]
-    assert (
-        rolling_window(b, window=mask_b, reduce=True)[1, 0, 0]
-        == b[5:10, 0:10][mask_b][0]
-    )
+    assert rolling_window(b, window=mask_b, reduce=True)[1, 0, 0] == b[5:10, 0:10][mask_b][0]
 
 
 def test_rolling_errors(rs):
@@ -156,15 +148,13 @@ def test_rolling_errors(rs):
         rolling_window(a, window=[[True, True], [True, True]])
 
 
-@pytest.mark.parametrize("dims", (1, 2, 3, 4))
+@pytest.mark.parametrize('dims', (1, 2, 3, 4))
 def test_rolling_sum_int_window(dims, rs):
     a = rs.random([10 for _ in range(dims)])
-    assert np.allclose(
-        rolling_sum(a, window=5), rolling_window(a, window=5, flatten=True).sum(axis=-1)
-    )
+    assert np.allclose(rolling_sum(a, window=5), rolling_window(a, window=5, flatten=True).sum(axis=-1))
 
 
-@pytest.mark.parametrize("dims", (2, 3, 4))
+@pytest.mark.parametrize('dims', (2, 3, 4))
 def test_rolling_sum_list_window(dims, rs):
     a = rs.random([10 for i in range(dims)])
     window = [5 for i in range(dims)]
@@ -176,13 +166,11 @@ def test_rolling_sum_list_window(dims, rs):
     )
 
 
-@pytest.mark.parametrize("dims", (1, 2, 3, 4))
+@pytest.mark.parametrize('dims', (1, 2, 3, 4))
 def test_rolling_sum_mask(dims, rs):
     a = rs.random([10 for _ in range(dims)])
     mask = rs.random([5 for _ in range(dims)]) > 0.5
-    assert np.allclose(
-        rolling_sum(a, window=mask), rolling_window(a, window=mask).sum(axis=-1)
-    )
+    assert np.allclose(rolling_sum(a, window=mask), rolling_window(a, window=mask).sum(axis=-1))
 
 
 def test_rolling_sum_errors(rs):

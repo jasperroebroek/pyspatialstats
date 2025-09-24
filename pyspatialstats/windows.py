@@ -7,9 +7,8 @@ from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
-from numpy._typing._shape import _ShapeLike
 
-from pyspatialstats.types.arrays import Array, Mask
+from pyspatialstats.types.arrays import Array, Mask, Shape
 
 
 class Window(ABC):
@@ -51,10 +50,12 @@ class Window(ABC):
         reduce: bool,
         allow_even: bool = False,
         a: Optional[Array] = None,
-        shape: Optional[_ShapeLike] = None,
+        shape: Optional[Shape] = None,
     ) -> None:
         if a is None and shape is None:
-            raise ValueError('Neither a nor shape are given')
+            raise ValueError('Neither `a` nor shape are given')
+        if a is not None and shape is not None:
+            raise ValueError('Both `a` and shape are given')
 
         shape = a.shape if a is not None else shape
         window_shape = self.get_shape(len(shape))
@@ -73,9 +74,7 @@ class Window(ABC):
         if all((ws == 1 for ws in window_shape)):
             raise ValueError(f'Window size cannot only contain 1s {window_shape=}')
 
-    def define_windowed_shape(
-        self, reduce: bool, a: Optional[Array] = None, shape: Optional[_ShapeLike] = None
-    ) -> _ShapeLike:
+    def define_windowed_shape(self, reduce: bool, a: Optional[Array] = None, shape: Optional[Shape] = None) -> Shape:
         if a is None and shape is None:
             raise ValueError('Neither a nor shape are given')
 
@@ -86,7 +85,7 @@ class Window(ABC):
         if len(shape) != len(window_shape):
             raise ValueError('a and window_shape must have the same number of dimensions')
 
-        return np.floor_divide(shape, window_shape) if reduce else shape
+        return tuple(np.floor_divide(shape, window_shape)) if reduce else shape
 
 
 @dataclass

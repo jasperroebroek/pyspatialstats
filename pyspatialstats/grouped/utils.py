@@ -1,39 +1,18 @@
-from typing import Any, Callable, Dict, Optional
+from typing import Dict
 
 import numpy as np
-import pandas as pd
-from numpy._typing._dtype_like import _SCT
-from numpy.typing import ArrayLike
 
-from pyspatialstats.grouped.core.count import define_max_ind as cydefine_max_ind
-from pyspatialstats.types.results import StatResult
+from pyspatialstats.types.arrays import Array
 from pyspatialstats.utils import get_dtype
 
 
-def define_max_ind(ind: np.ndarray[tuple[int, ...], np.dtype[_SCT]]) -> int:
-    ind_flat = np.ascontiguousarray(ind, dtype=np.uintp).ravel()
-    return cydefine_max_ind(ind_flat)
-
-
-def generate_index(ind: np.ndarray[tuple[int], np.uintp], v: np.ndarray[tuple[int], np.float64]) -> np.ndarray[tuple[int], np.uintp]:
-    from pyspatialstats.grouped import grouped_count
-
-    return np.argwhere(grouped_count(ind, v)).ravel()
-
-
-def parse_array(
-    name: str, dv: np.ndarray[tuple[int, ...], np.dtype[_SCT]]
-) -> np.ndarray[tuple[int, ...], np.dtype[_SCT]]:
-    if name != 'ind' and not name.startswith('v'):
-        raise ValueError(f'Only ind an variables are valid keywords: {name}')
+def parse_array(name: str, dv: Array) -> np.ndarray[tuple[int, ...], np.generic]:
     return np.ascontiguousarray(dv, dtype=get_dtype(name))
 
 
-def parse_data(
-    ind: np.ndarray[tuple[int, ...], np.dtype[_SCT]], **data
-) -> Dict[str, np.ndarray[tuple[int], np.dtype[_SCT]]]:
+def parse_data(ind: Array, **kwargs: Array) -> Dict[str, np.ndarray[tuple[int], np.generic]]:
     parsed_data = {'ind': parse_array('ind', ind)}
-    parsed_data.update({d: parse_array(d, data[d]) for d in data})
+    parsed_data.update({k: parse_array(k, kwargs[k]) for k in kwargs})
 
     for d in parsed_data:
         if parsed_data[d].shape != parsed_data['ind'].shape:
@@ -42,47 +21,29 @@ def parse_data(
     return {k: v.ravel() for k, v in parsed_data.items()}
 
 
-def grouped_fun(
-    fun: Callable,
-    ind: ArrayLike,
-    n_bootstraps: Optional[int] = None,
-    seed: Optional[int] = None,
-    **data,
-) -> np.ndarray[tuple[int], np.dtype[_SCT]] | StatResult:
-    kwargs = {}
-    if n_bootstraps is not None:
-        kwargs['n_bootstraps'] = n_bootstraps
-    if seed is not None:
-        kwargs['seed'] = seed
+def parse_data_linear_regression(ind: Array, y: Array, x: Array) -> Dict[str, np.ndarray[tuple[int, ...], np.generic]]:
+    """X contains features, which are stored in the last dimension"""
+    if (
+        (ind.shape != y.shape)
+        or (x.ndim == y.ndim and not x.shape == y.shape)
+        or (x.ndim == y.ndim + 1 and not x.shape[:-1] == y.shape)
+    ):
+        raise IndexError(
+            f'Arrays are not compatible: {ind.shape=} {x.shape=} {y.shape=}. Ind and y must be the same shape, while x '
+            f'needs be either the same shape as y or have one dimension more than y.'
+        )
 
-    parsed_data = parse_data(ind, **data)
+    n_features = 1 if x.size == y.size else x.shape[-1]
 
-    return fun(**parsed_data, **kwargs)
+    return {
+        'ind': parse_array('ind', ind).flatten(),
+        'y': parse_array('y', y).flatten(),
+        'x': np.ascontiguousarray(x, dtype=np.float64).reshape(-1, n_features),
+    }
 
 
-def grouped_fun_pd(
-    fun: Callable, name: str, ind: ArrayLike, n_bootstraps: Optional[int] = None, seed: Optional[int] = None, **data
-) -> pd.DataFrame:
-    kwargs = {}
-    if n_bootstraps is not None:
-        kwargs['n_bootstraps'] = n_bootstraps
-    if seed is not None:
-        kwargs['seed'] = seed
+def define_max_ind(ind: np.ndarray[tuple[int, ...], np.generic]) -> int:
+    from pyspatialstats.grouped.indices.max import define_max_ind as cydefine_max_ind
 
-    parsed_data = parse_data(ind, **data)
-
-    nan_mask = np.zeros_like(parsed_data['ind'], dtype=np.float64)
-
-    for d in parsed_data:
-        if d == 'ind':
-            continue
-        nan_mask[np.isnan(parsed_data[d])] = np.nan
-
-    index = generate_index(parsed_data['ind'], nan_mask)
-    r = fun(**parsed_data, **kwargs)
-
-    if isinstance(r, np.ndarray):
-        return pd.DataFrame(data={name: r}, index=index)
-
-    # assume r is a namedtuple
-    return pd.DataFrame(data=r.__dict__, index=index)
+    ind_flat = np.ascontiguousarray(ind, dtype=np.uintp).ravel()
+    return cydefine_max_ind(ind_flat)

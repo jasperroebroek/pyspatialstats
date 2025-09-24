@@ -1,7 +1,7 @@
 from functools import partial
 from typing import Optional
 
-from pyspatialstats.focal.focal_core import focal_stats, focal_stats_base
+from pyspatialstats.focal._core import focal_stats, focal_stats_base
 from pyspatialstats.focal.core.min import _focal_min
 from pyspatialstats.types.arrays import Array, RasterFloat64
 from pyspatialstats.types.windows import WindowT
@@ -56,8 +56,8 @@ def focal_min(
     :obj:`~numpy.ndarray`
     """
     return focal_stats(
-        a,
-        func=partial(focal_stats_base, cy_func=_focal_min),
+        data={'a': a},
+        func=partial(focal_stats_base, stat_func=_focal_min),
         window=window,
         fraction_accepted=fraction_accepted,
         reduce=reduce,

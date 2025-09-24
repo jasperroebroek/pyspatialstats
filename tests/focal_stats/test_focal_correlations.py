@@ -4,7 +4,7 @@ import xarray as xr
 from scipy.stats import pearsonr
 
 from pyspatialstats.focal import focal_correlation
-from pyspatialstats.types.results import CorrelationResult
+from pyspatialstats.results.stats import CorrelationResult
 from pyspatialstats.windows import define_window
 from tests.focal_stats.utils import focal_correlation_simple
 

@@ -1,13 +1,5 @@
-from pyspatialstats.random.random cimport RandomInts
+from pyspatialstats.random.random cimport Random
+from pyspatialstats.stats.welford cimport WelfordState
 
-cdef struct CyBootstrapMeanResult:
-    double mean
-    double se
 
-cdef CyBootstrapMeanResult _bootstrap_mean(
-    double* v,
-    size_t n_samples,
-    size_t n_bootstraps,
-    RandomInts rng,
-    double *means
-) noexcept nogil
+cdef void bootstrap_mean(double* v, size_t n_samples, size_t n_boot, Random rng, WelfordState *result) noexcept nogil

@@ -1,8 +1,8 @@
 from functools import partial
 from typing import Literal, Optional
 
-from pyspatialstats.focal.focal_core import focal_stats, focal_stats_base
 from pyspatialstats.focal.core.std import _focal_std
+from pyspatialstats.focal._core import focal_stats, focal_stats_base
 from pyspatialstats.types.arrays import Array, RasterFloat64
 from pyspatialstats.types.windows import WindowT
 from pyspatialstats.utils import timeit
@@ -17,8 +17,8 @@ def focal_std(
     verbose: bool = False,  # noqa
     reduce: bool = False,
     chunks: Optional[int | tuple[int, int]] = None,
-    std_df: Literal[0, 1] = 0,
-out: Optional[Array] = None
+    std_df: Literal[0, 1] = 1,
+    out: Optional[Array] = None,
 ) -> RasterFloat64:
     """
     Focal standard deviation
@@ -55,7 +55,7 @@ out: Optional[Array] = None
         - ``0``: normalize by ``N`` (population standard deviation)
         - ``1``: normalize by ``N - 1`` (sample standard deviation)
 
-        Default is 0. See :cy_func:`numpy.std` for more details.
+        Default is 1. See :stat_func:`numpy.std` for more details.
     out : :obj:`~numpy.ndarray`, optional
         Output array.
 
@@ -64,11 +64,11 @@ out: Optional[Array] = None
     :obj:`~numpy.ndarray`
     """
     return focal_stats(
-        a,
-        func=partial(focal_stats_base, cy_func=_focal_std, dof=std_df),
+        data={'a': a},
+        func=partial(focal_stats_base, stat_func=_focal_std, dof=std_df),
         window=window,
         fraction_accepted=fraction_accepted,
         reduce=reduce,
         chunks=chunks,
-        out=out
+        out=out,
     )

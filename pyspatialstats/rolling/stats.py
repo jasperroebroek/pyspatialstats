@@ -30,7 +30,7 @@ def rolling_sum(
     Returns
     -------
     :obj:`~numpy.ndarray`
-        Rolling sum over array `a`. Resulting shape depends on reduce parameter. See :cy_func:`rolling_window` for
+        Rolling sum over array `a`. Resulting shape depends on reduce parameter. See :stat_func:`rolling_window` for
         documentation.
     """
     a = np.asarray(a)
@@ -97,7 +97,7 @@ def rolling_mean(
     Returns
     -------
     :obj:`~numpy.ndarray`
-        Rolling mean over array `a`. Resulting shape depends on reduce parameter. See :cy_func:`rolling_window` for
+        Rolling mean over array `a`. Resulting shape depends on reduce parameter. See :stat_func:`rolling_window` for
         documentation.
     """
     a = np.asarray(a)

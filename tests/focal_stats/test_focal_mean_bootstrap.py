@@ -4,17 +4,14 @@ import xarray as xr
 
 from pyspatialstats.bootstrap.config import BootstrapConfig
 from pyspatialstats.bootstrap.mean import py_bootstrap_mean
-from pyspatialstats.enums import Uncertainty
 from pyspatialstats.focal import focal_mean
-from pyspatialstats.types.results import MeanResult
+from pyspatialstats.results.stats import MeanResult
 from pyspatialstats.windows import define_window
 
 
 def test_basic_bootstrap():
     a = np.arange(100).reshape(10, 10)
-    result = focal_mean(
-        a, window=3, uncertainty=Uncertainty.SE, bootstrap_config=BootstrapConfig(n_bootstraps=100, seed=42)
-    )
+    result = focal_mean(a, window=3, error='bootstrap', bootstrap_config=BootstrapConfig(n_bootstraps=100, seed=42))
     mean, se = result.mean, result.se
 
     assert mean.shape == a.shape
@@ -27,9 +24,7 @@ def test_nan_handling():
     a = np.full((5, 5), 10.0)
     a[2, 2] = np.nan  # Introduce a NaN
 
-    result = focal_mean(
-        a, window=3, uncertainty=Uncertainty.SE, bootstrap_config=BootstrapConfig(n_bootstraps=123, seed=42)
-    )
+    result = focal_mean(a, window=3, error='bootstrap', bootstrap_config=BootstrapConfig(n_bootstraps=123, seed=42))
     assert np.isnan(result.mean[2, 2])
     assert np.isnan(result.se[2, 2])
 
@@ -43,7 +38,7 @@ def test_threshold():
         a,
         window=3,
         fraction_accepted=1.0,
-        uncertainty=Uncertainty.SE,
+        error='bootstrap',
         bootstrap_config=BootstrapConfig(n_bootstraps=10, seed=1),
     )
     assert np.isnan(result.mean[1, 1])
@@ -54,7 +49,7 @@ def test_threshold():
         a,
         window=3,
         fraction_accepted=0.0,
-        uncertainty=Uncertainty.SE,
+        error='bootstrap',
         bootstrap_config=BootstrapConfig(n_bootstraps=10, seed=1),
     )
     assert not np.isnan(result.mean[1, 1])
@@ -64,7 +59,7 @@ def test_threshold():
 def test_reduce_mode(rs):
     a = rs.random((6, 6))
     result = focal_mean(
-        a, window=3, reduce=True, uncertainty=Uncertainty.SE, bootstrap_config=BootstrapConfig(n_bootstraps=50, seed=0)
+        a, window=3, reduce=True, error='bootstrap', bootstrap_config=BootstrapConfig(n_bootstraps=50, seed=0)
     )
     assert result.mean.shape == (2, 2)
     assert result.se.shape == (2, 2)
@@ -72,12 +67,8 @@ def test_reduce_mode(rs):
 
 def test_deterministic_output(rs):
     a = rs.random((10, 10))
-    res1 = focal_mean(
-        a, window=3, uncertainty=Uncertainty.SE, bootstrap_config=BootstrapConfig(n_bootstraps=100, seed=123)
-    )
-    res2 = focal_mean(
-        a, window=3, uncertainty=Uncertainty.SE, bootstrap_config=BootstrapConfig(n_bootstraps=100, seed=123)
-    )
+    res1 = focal_mean(a, window=3, error='bootstrap', bootstrap_config=BootstrapConfig(n_bootstraps=100, seed=123))
+    res2 = focal_mean(a, window=3, error='bootstrap', bootstrap_config=BootstrapConfig(n_bootstraps=100, seed=123))
 
     np.testing.assert_allclose(res1.mean, res2.mean, equal_nan=True)
     np.testing.assert_allclose(res1.se, res2.se, equal_nan=True)
@@ -86,7 +77,7 @@ def test_deterministic_output(rs):
 def test_values(rs):
     a = rs.random((3, 3))
     focal_result = focal_mean(
-        a, window=3, uncertainty=Uncertainty.SE, bootstrap_config=BootstrapConfig(n_bootstraps=100, seed=123)
+        a, window=3, error='bootstrap', bootstrap_config=BootstrapConfig(n_bootstraps=100, seed=123)
     )
     bootstrap_result = py_bootstrap_mean(a.flatten(), 100, seed=123)
 
@@ -97,11 +88,9 @@ def test_values(rs):
 def test_parallel(rs):
     a = rs.random((100, 100))
 
-    linear_r = focal_mean(
-        a, window=5, uncertainty=Uncertainty.SE, bootstrap_config=BootstrapConfig(n_bootstraps=100, seed=123)
-    )
+    linear_r = focal_mean(a, window=5, error='bootstrap', bootstrap_config=BootstrapConfig(n_bootstraps=100, seed=123))
     parallel_r = focal_mean(
-        a, window=5, uncertainty=Uncertainty.SE, bootstrap_config=BootstrapConfig(n_bootstraps=100, seed=123), chunks=75
+        a, window=5, error='bootstrap', bootstrap_config=BootstrapConfig(n_bootstraps=100, seed=123), chunks=75
     )
 
     np.testing.assert_allclose(linear_r.mean, parallel_r.mean, equal_nan=True, atol=0.1)
@@ -127,7 +116,7 @@ def test_xarray_output(rs, reduce, chunks):
         out=output,
         reduce=reduce,
         chunks=chunks,
-        uncertainty=Uncertainty.SE,
+        error='bootstrap',
         bootstrap_config=bootstrap_config,
     )
     r_expected = focal_mean(
@@ -136,7 +125,7 @@ def test_xarray_output(rs, reduce, chunks):
         out=None,
         reduce=reduce,
         chunks=chunks,
-        uncertainty=Uncertainty.SE,
+        error='bootstrap',
         bootstrap_config=bootstrap_config,
     )
 

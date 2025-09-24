@@ -1,48 +1,31 @@
 import numpy as np
-from pyspatialstats.types.results import MeanResult
+from pyspatialstats.results.stats import MeanResult
 
-from pyspatialstats.random.random cimport RandomInts
-from libc.stdlib cimport calloc, free
-from libc.math cimport sqrt
+from pyspatialstats.stats.welford cimport WelfordState, ws_reset, ws_add, ws_mean, ws_std
+from pyspatialstats.random.random cimport Random
 
 
-cdef CyBootstrapMeanResult _bootstrap_mean(
-    double* v,
-    size_t n_samples,
-    size_t n_bootstraps,
-    RandomInts rng,
-    double *means
-) noexcept nogil:
+cdef void bootstrap_mean(double* v, size_t n_samples, size_t n_boot, Random rng, WelfordState *result) noexcept nogil:
     """This function does not have to look for NaNs, they are filtered out before"""
     cdef:
         size_t i, j
-        double mean, se, mean_sum = 0, sum_squared_diff = 0
+        double mean
 
-    for i in range(n_bootstraps):
-        means[i] = 0
+    ws_reset(result)
+
+    for i in range(n_boot):
+        mean = 0
         for j in range(n_samples):
-            means[i] += v[rng.next_value(bound=n_samples)]
-        means[i] /= n_samples
-        mean_sum += means[i]
-
-    mean = mean_sum / n_bootstraps
-
-    for i in range(n_bootstraps):
-        sum_squared_diff += (means[i] - mean) ** 2
-
-    se = sqrt(sum_squared_diff / n_bootstraps)
-
-    return CyBootstrapMeanResult(mean=mean, se=se)
+            mean += v[rng.integer(bound=n_samples)]
+        mean /= n_samples
+        ws_add(result, mean)
 
 
 def py_bootstrap_mean(v: np.ndarray, n_bootstraps: int, seed: int = 0) -> MeanResult:
     cdef:
-        double *means = <double *> calloc(n_bootstraps, sizeof(double))
         double[:] v_parsed = np.asarray(v, dtype=np.float64)
-        RandomInts rng = RandomInts(seed)
-        
-    if means == NULL:
-        raise MemoryError("Memory allocation failed for means array")
+        Random rng = Random(seed)
+        WelfordState result = WelfordState()
 
     if n_bootstraps < 2:
         raise ValueError("Bootstrap sample size must be at least 2")
@@ -52,7 +35,6 @@ def py_bootstrap_mean(v: np.ndarray, n_bootstraps: int, seed: int = 0) -> MeanRe
     if n_samples < 2:
         raise ValueError("At least 2 samples need to be present")
 
-    result = _bootstrap_mean(&v_parsed[0], n_samples, n_bootstraps, rng, means)
+    bootstrap_mean(&v_parsed[0], n_samples, n_bootstraps, rng, &result)
 
-    free(means)
-    return MeanResult(mean=result.mean, se=result.se)
+    return MeanResult(mean=ws_mean(&result), se=ws_std(&result))

@@ -1,65 +1,71 @@
+from functools import partial
 from typing import Optional
 
+import numpy as np
+
+from pyspatialstats.focal._core import focal_stats, focal_stats_base
 from pyspatialstats.focal.core.linear_regression import _focal_linear_regression
-from pyspatialstats.focal.focal_core import focal_stats, focal_stats_base
 from pyspatialstats.focal.result_config import FocalLinearRegressionResultConfig
-from pyspatialstats.types.results import LinearRegressionResult
+from pyspatialstats.results.stats import RegressionResult
 from pyspatialstats.stats.p_values import calculate_p_value
 from pyspatialstats.types.arrays import Array
 from pyspatialstats.types.windows import WindowT
-from pyspatialstats.utils import (
-    timeit,
-)
+from pyspatialstats.utils import timeit
 
 
 def _focal_linear_regression_base(
-    a1: Array,
-    a2: Array,
-    *,
-    window: WindowT,
-    fraction_accepted: float,
+    x: np.ndarray,
+    y: np.ndarray,
+    mask: np.ndarray,
+    beta: np.ndarray,
+    beta_se: np.ndarray,
+    r_squared: np.ndarray,
+    df: np.ndarray,
+    p: np.ndarray,
+    t: np.ndarray,
+    fringe: tuple[int, int],
+    threshold: float,
     reduce: bool,
-    out: Optional[LinearRegressionResult],
-    result_config: FocalLinearRegressionResultConfig,
-) -> LinearRegressionResult:
-    r: LinearRegressionResult = focal_stats_base(
-        a1,
-        a2,
-        cy_func=_focal_linear_regression,
-        window=window,
-        fraction_accepted=fraction_accepted,
+):
+    _focal_linear_regression(
+        x=x,
+        y=y,
+        mask=mask,
+        beta=beta,
+        beta_se=beta_se,
+        r_squared=r_squared,
+        df=df,
+        fringe=fringe,
+        threshold=threshold,
         reduce=reduce,
-        result_config=result_config,
-        out=out,
     )
 
-    if result_config.p_values:
-        r.p_a = calculate_p_value(r.t_a, r.df, out=r.p_a)
-        r.p_b = calculate_p_value(r.t_b, r.df, out=r.p_b)
-
-    return r
+    t[:] = beta / beta_se
+    p[:] = calculate_p_value(t, df[..., np.newaxis])
 
 
 @timeit
 def focal_linear_regression(
-    a1: Array,
-    a2: Array,
+    x: Array,
+    y: Array,
     *,
     window: WindowT,
     fraction_accepted: float = 0.7,
     verbose: bool = False,  # noqa
     reduce: bool = False,
-    p_values: bool = False,
     chunks: Optional[int | tuple[int, int]] = None,
-    out: Optional[LinearRegressionResult] = None,
-) -> LinearRegressionResult:
+    out: Optional[RegressionResult] = None,
+) -> RegressionResult:
     """
     Focal linear regression.
 
     Parameters
     ----------
-    a1, a2 : Array
-        Input arrays to be regressed. Must have the same shape and be two-dimensional.
+    y : Array
+        Dependent variable. Must be two-dimensional.
+    x : Array
+        Independent variables. Must be two or three-dimensional. If two-dimensional, it is interpreted as a single
+        feature, internally transformed to three dimensions by adding a singleton dimension.
     window : int, array-like, or Window
         Window applied over the input arrays. It can be:
 
@@ -89,17 +95,21 @@ def focal_linear_regression(
 
     Returns
     -------
-    LinearRegressionResult
+    RegressionResult
         StatResult containing regression coefficients, standard error values, t-statistics, and optionally p-values.
     """
-    return focal_stats(
-        a1,
-        a2,
-        func=_focal_linear_regression_base,
+    nf = x.shape[2] + 1 if x.ndim == 3 else 2
+    x_ndim = 2 if x.ndim == 2 else 3
+
+    result = focal_stats(
+        data={'x': x, 'y': y},
+        func=partial(focal_stats_base, stat_func=_focal_linear_regression_base),
         window=window,
         fraction_accepted=fraction_accepted,
         reduce=reduce,
         chunks=chunks,
-        result_config=FocalLinearRegressionResultConfig(p_values=p_values),
+        result_config=FocalLinearRegressionResultConfig(nf=nf, x_ndim=x_ndim),
         out=out,
     )
+
+    return result

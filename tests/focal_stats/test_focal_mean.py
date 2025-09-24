@@ -2,9 +2,8 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from pyspatialstats.enums import Uncertainty
 from pyspatialstats.focal import focal_mean
-from pyspatialstats.types.results import MeanResult
+from pyspatialstats.results.stats import MeanResult
 from pyspatialstats.rolling import rolling_window
 from pyspatialstats.windows import define_window
 
@@ -14,8 +13,8 @@ def test_focal_stats_values(rs):
     assert np.allclose(focal_mean(a, window=5).mean[2, 2], a.mean())
     assert np.allclose(focal_mean(a, window=5, reduce=True).mean[0, 0], a.mean())
 
-    assert np.allclose(focal_mean(a, window=5, uncertainty=Uncertainty.STD).std[2, 2], a.std())
-    assert np.allclose(focal_mean(a, window=5, reduce=True, uncertainty=Uncertainty.STD).std[0, 0], a.std())
+    assert np.allclose(focal_mean(a, window=5, error='parametric').std[2, 2], a.std())
+    assert np.allclose(focal_mean(a, window=5, reduce=True, error='parametric').std[0, 0], a.std())
 
     a = rs.random((100, 100))
     assert np.allclose(
@@ -27,11 +26,11 @@ def test_focal_stats_values(rs):
         np.mean(rolling_window(a, window=5, reduce=True, flatten=True), axis=-1),
     )
     assert np.allclose(
-        focal_mean(a, window=5, reduce=False, uncertainty=Uncertainty.STD).std[2:-2, 2:-2],
+        focal_mean(a, window=5, reduce=False, error='parametric').std[2:-2, 2:-2],
         np.std(rolling_window(a, window=5, reduce=False, flatten=True), axis=-1),
     )
     assert np.allclose(
-        focal_mean(a, window=5, reduce=True, uncertainty=Uncertainty.STD).std,
+        focal_mean(a, window=5, reduce=True, error='parametric').std,
         np.std(rolling_window(a, window=5, reduce=True, flatten=True), axis=-1),
     )
 
@@ -53,8 +52,8 @@ def test_focal_mean_values_mask(rs):
 def test_parallel(rs, reduce):
     a = rs.random((100, 100))
 
-    linear_r = focal_mean(a, window=5, reduce=reduce, uncertainty=Uncertainty.STD)
-    parallel_r = focal_mean(a, window=5, reduce=reduce, uncertainty=Uncertainty.STD, chunks=75)
+    linear_r = focal_mean(a, window=5, reduce=reduce, error='parametric')
+    parallel_r = focal_mean(a, window=5, reduce=reduce, error='parametric', chunks=75)
 
     np.testing.assert_allclose(linear_r.mean, parallel_r.mean, equal_nan=True)
     np.testing.assert_allclose(linear_r.std, parallel_r.std, equal_nan=True)
@@ -72,8 +71,8 @@ def test_xarray_output(rs, reduce, chunks):
         std=xr.DataArray(np.full(output_shape, fill_value=np.nan, dtype=np.float64)),
     )
 
-    r = focal_mean(a, window=5, out=output, reduce=reduce, chunks=chunks, uncertainty=Uncertainty.STD)
-    r_expected = focal_mean(a, window=5, out=None, reduce=reduce, chunks=chunks, uncertainty=Uncertainty.STD)
+    r = focal_mean(a, window=5, out=output, reduce=reduce, chunks=chunks, error='parametric')
+    r_expected = focal_mean(a, window=5, out=None, reduce=reduce, chunks=chunks, error='parametric')
 
     assert id(r.mean) == id(output.mean)
     assert id(r.std) == id(output.std)

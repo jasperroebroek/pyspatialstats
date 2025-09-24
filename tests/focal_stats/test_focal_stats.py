@@ -1,3 +1,5 @@
+from functools import partial
+
 import numpy as np
 import pytest
 import xarray as xr
@@ -20,7 +22,6 @@ from pyspatialstats.focal.result_config import (
     FocalMeanResultConfig,
 )
 from pyspatialstats.rolling import rolling_window
-from pyspatialstats.utils import get_dtype
 from pyspatialstats.windows import define_window
 
 
@@ -32,11 +33,12 @@ def focal_correlation(a, **kwargs):
     return focal_correlation_internal(a1=a, a2=a, **kwargs).c
 
 
-def focal_linear_regression(a, **kwargs):
-    return focal_linear_regression_internal(a1=a, a2=a, **kwargs).a
+def focal_linear_regression(*args, **kwargs):
+    d = args[0]
+    return focal_linear_regression_internal(x=d, y=d, **kwargs).beta[..., 0]
 
 
-focal_stat_functions = (
+FOCAL_STAT_FUNCTIONS = (
     focal_mean,
     focal_min,
     focal_max,
@@ -47,18 +49,38 @@ focal_stat_functions = (
     focal_majority,
 )
 
-
-@pytest.mark.parametrize(
-    'fs,np_fs',
-    [
-        (focal_mean, np.mean),
-        (focal_sum, np.sum),
-        (focal_min, np.min),
-        (focal_max, np.max),
-        (focal_std, np.std),
-    ],
+FOCAL_STAT_FUNCTIONS_SIMPLE = (
+    focal_mean,
+    focal_min,
+    focal_max,
+    focal_sum,
+    focal_std,
 )
-def test_focal_stats_values(rs, fs, np_fs):
+
+NPY_STAT_FUNCTIONS = {
+    focal_mean: np.nanmean,
+    focal_sum: np.nansum,
+    focal_min: np.nanmin,
+    focal_max: np.nanmax,
+    focal_std: partial(np.nanstd, ddof=1),
+}
+
+FOCAL_STAT_FUNCTION_CONFIGS = {
+    focal_mean: FocalMeanResultConfig(),
+    focal_sum: FocalArrayResultConfig(),
+    focal_min: FocalArrayResultConfig(),
+    focal_max: FocalArrayResultConfig(),
+    focal_std: FocalArrayResultConfig(),
+    focal_majority: FocalArrayResultConfig(),
+    focal_linear_regression: FocalLinearRegressionResultConfig(),
+    focal_correlation: FocalCorrelationResultConfig(),
+}
+
+
+@pytest.mark.parametrize('fs', FOCAL_STAT_FUNCTIONS_SIMPLE)
+def test_focal_stats_values(rs, fs):
+    np_fs = NPY_STAT_FUNCTIONS[fs]
+
     a = rs.random((5, 5))
     assert np.allclose(fs(a, window=5)[2, 2], np_fs(a))
     assert np.allclose(fs(a, window=5, reduce=True)[0, 0], np_fs(a))
@@ -74,17 +96,10 @@ def test_focal_stats_values(rs, fs, np_fs):
     )
 
 
-@pytest.mark.parametrize(
-    'fs,np_fs',
-    [
-        (focal_mean, np.nanmean),
-        (focal_sum, np.nansum),
-        (focal_min, np.nanmin),
-        (focal_max, np.nanmax),
-        (focal_std, np.nanstd),
-    ],
-)
-def test_focal_stats_values_mask(rs, fs, np_fs):
+@pytest.mark.parametrize('fs', FOCAL_STAT_FUNCTIONS_SIMPLE)
+def test_focal_stats_values_mask(rs, fs):
+    np_fs = NPY_STAT_FUNCTIONS[fs]
+
     a = rs.random((5, 5))
     a[1, 2] = np.nan
 
@@ -97,17 +112,10 @@ def test_focal_stats_values_mask(rs, fs, np_fs):
     assert fs(a, window=mask, reduce=True, fraction_accepted=0) == np_fs(a[mask])
 
 
-@pytest.mark.parametrize(
-    'fs,np_fs',
-    [
-        (focal_mean, np.nanmean),
-        (focal_sum, np.nansum),
-        (focal_min, np.nanmin),
-        (focal_max, np.nanmax),
-        (focal_std, np.nanstd),
-    ],
-)
-def test_focal_stats_values_against_rolling(rs, fs, np_fs):
+@pytest.mark.parametrize('fs', FOCAL_STAT_FUNCTIONS_SIMPLE)
+def test_focal_stats_values_against_rolling(rs, fs):
+    np_fs = NPY_STAT_FUNCTIONS[fs]
+
     a = rs.random((100, 100))
     assert_array_almost_equal(
         fs(a, window=5)[2:-2, 2:-2],
@@ -115,14 +123,14 @@ def test_focal_stats_values_against_rolling(rs, fs, np_fs):
     )
 
 
-@pytest.mark.parametrize('fs', focal_stat_functions)
+@pytest.mark.parametrize('fs', FOCAL_STAT_FUNCTIONS)
 def test_focal_stats_shape(rs, fs):
     a = rs.random((10, 10))
     assert a.shape == fs(a, window=3).shape
     assert fs(a, window=10, reduce=True).shape == (1, 1)
 
 
-@pytest.mark.parametrize('fs', focal_stat_functions)
+@pytest.mark.parametrize('fs', FOCAL_STAT_FUNCTIONS)
 def test_focal_stats_errors(rs, fs):
     # not 2D
     with pytest.raises(IndexError):
@@ -160,24 +168,17 @@ def test_focal_stats_errors(rs, fs):
         fs(a, window=5, fraction_accepted=1.1)
 
 
-@pytest.mark.parametrize('fs', focal_stat_functions)
+@pytest.mark.parametrize('fs', FOCAL_STAT_FUNCTIONS)
 def test_focal_stats_nan_propagation(rs, fs):
     a = rs.random((5, 5))
     a[2, 2] = np.nan
     assert np.isnan(fs(a, window=5)[2, 2])
 
 
-@pytest.mark.parametrize(
-    'fs,np_fs',
-    [
-        (focal_mean, np.nanmean),
-        (focal_sum, np.nansum),
-        (focal_min, np.nanmin),
-        (focal_max, np.nanmax),
-        (focal_std, np.nanstd),
-    ],
-)
-def test_focal_stats_nan_behaviour_fraction_accepted(rs, fs, np_fs):
+@pytest.mark.parametrize('fs', FOCAL_STAT_FUNCTIONS_SIMPLE)
+def test_focal_stats_nan_behaviour_fraction_accepted(rs, fs):
+    np_fs = NPY_STAT_FUNCTIONS[fs]
+
     a = rs.random((5, 5))
     a[1, 1] = np.nan
 
@@ -186,7 +187,7 @@ def test_focal_stats_nan_behaviour_fraction_accepted(rs, fs, np_fs):
     assert np.isnan(fs(a, window=5, fraction_accepted=1)[2, 2])
 
 
-@pytest.mark.parametrize('fs', focal_stat_functions)
+@pytest.mark.parametrize('fs', FOCAL_STAT_FUNCTIONS)
 def test_focal_stats_dtype(rs, fs):
     a = rs.random((5, 5)).astype(np.int32)
     assert fs(a, window=5).dtype == np.float64
@@ -196,7 +197,7 @@ def test_focal_stats_dtype(rs, fs):
 
 
 @pytest.mark.parametrize('reduce', (True, False))
-@pytest.mark.parametrize('fs', focal_stat_functions)
+@pytest.mark.parametrize('fs', FOCAL_STAT_FUNCTIONS)
 def test_parallel(rs, reduce, fs):
     a = rs.random((100, 100))
 
@@ -208,20 +209,10 @@ def test_parallel(rs, reduce, fs):
 
 @pytest.mark.parametrize('chunks', (None, 75))
 @pytest.mark.parametrize('reduce', (True, False))
-@pytest.mark.parametrize(
-    'fs,config',
-    [
-        (focal_mean, FocalMeanResultConfig()),
-        (focal_sum, FocalArrayResultConfig()),
-        (focal_min, FocalArrayResultConfig()),
-        (focal_max, FocalArrayResultConfig()),
-        (focal_std, FocalArrayResultConfig()),
-        (focal_majority, FocalArrayResultConfig()),
-        (focal_linear_regression, FocalLinearRegressionResultConfig(p_values=False)),
-        (focal_correlation, FocalCorrelationResultConfig(p_values=False)),
-    ],
-)
-def test_xarray_output(rs, reduce, fs, config, chunks):
+@pytest.mark.parametrize('fs', FOCAL_STAT_FUNCTIONS)
+def test_xarray_output(rs, reduce, fs, chunks):
+    config = FOCAL_STAT_FUNCTION_CONFIGS[fs]
+
     a = xr.DataArray(rs.random((100, 100)))
     window = define_window(5)
     output_shape = window.define_windowed_shape(reduce=reduce, a=a)
@@ -231,7 +222,13 @@ def test_xarray_output(rs, reduce, fs, config, chunks):
     else:
         out = config.return_type(
             **{
-                field: xr.DataArray(np.full(output_shape, fill_value=np.nan, dtype=get_dtype(field)))
+                field: xr.DataArray(
+                    np.full(
+                        config.get_output_shape(field, a.shape, window=window, reduce=reduce),
+                        fill_value=np.nan,
+                        dtype=config.get_dtype(field),
+                    )
+                )
                 for field in config.active_fields
             }
         )
@@ -239,31 +236,20 @@ def test_xarray_output(rs, reduce, fs, config, chunks):
     r = fs(a, window=5, out=out, reduce=reduce, chunks=chunks)
     r_expected = fs(a, window=5, out=None, reduce=reduce, chunks=chunks)
 
-    ids = (
-        (id(out),)
-        if isinstance(out, xr.DataArray)
-        else tuple(id(getattr(out, field)) for field in config.active_fields)
-    )
-    assert id(r) in ids
+    if isinstance(out, xr.DataArray):
+        assert np.shares_memory(r, out)
+    else:
+        assert any(np.shares_memory(r, getattr(out, field)) for field in config.active_fields)
+
     np.testing.assert_allclose(r.values, r_expected, equal_nan=True)
 
 
 @pytest.mark.parametrize('chunks', (None, 75))
 @pytest.mark.parametrize('reduce', (True, False))
-@pytest.mark.parametrize(
-    'fs,config',
-    [
-        (focal_mean, FocalMeanResultConfig()),
-        (focal_sum, FocalArrayResultConfig()),
-        (focal_min, FocalArrayResultConfig()),
-        (focal_max, FocalArrayResultConfig()),
-        (focal_std, FocalArrayResultConfig()),
-        (focal_majority, FocalArrayResultConfig()),
-        (focal_linear_regression, FocalLinearRegressionResultConfig(p_values=False)),
-        (focal_correlation, FocalCorrelationResultConfig(p_values=False)),
-    ],
-)
-def test_numpy_output(rs, reduce, fs, config, chunks):
+@pytest.mark.parametrize('fs', FOCAL_STAT_FUNCTIONS)
+def test_numpy_output(rs, reduce, fs, chunks):
+    config = FOCAL_STAT_FUNCTION_CONFIGS[fs]
+
     a = rs.random((100, 100))
     window = define_window(5)
     output_shape = window.define_windowed_shape(reduce=reduce, a=a)
@@ -273,20 +259,21 @@ def test_numpy_output(rs, reduce, fs, config, chunks):
     else:
         out = config.return_type(
             **{
-                field: np.full(output_shape, fill_value=np.nan, dtype=get_dtype(field))
+                field: np.full(
+                    config.get_output_shape(field, a.shape, window=window, reduce=reduce),
+                    fill_value=np.nan,
+                    dtype=config.get_dtype(field),
+                )
                 for field in config.active_fields
             }
         )
 
-    ids = (
-        (id(out),)
-        if isinstance(out, np.ndarray)
-        else tuple(id(getattr(out, field)) for field in config.active_fields)
-    )
-
     r = fs(a, window=5, out=out, reduce=reduce, chunks=chunks)
     r_expected = fs(a, window=5, out=None, reduce=reduce, chunks=chunks)
 
-    assert id(r) in ids
+    if isinstance(out, np.ndarray):
+        assert np.shares_memory(r, out)
+    else:
+        assert any(np.shares_memory(r, getattr(out, field)) for field in config.active_fields)
 
     np.testing.assert_allclose(r, r_expected, equal_nan=True)

@@ -6,15 +6,16 @@ import numpy as np
 cimport numpy as np
 from libc.math cimport isnan
 from libc.stdlib cimport malloc, free
-from pyspatialstats.bootstrap.mean cimport _bootstrap_mean, CyBootstrapMeanResult
-from pyspatialstats.random.random cimport RandomInts
+from pyspatialstats.stats.welford cimport WelfordState, ws_mean, ws_std, ws_add, ws_reset
+from pyspatialstats.bootstrap.mean cimport bootstrap_mean
+from pyspatialstats.random.random cimport Random
 from pyspatialstats.types.cy_types cimport numeric
 
 
 cpdef void _focal_mean(
     numeric[:, :, :, :] a,
     np.npy_uint8[:, ::1] mask,
-    double[:, :] r,
+    double[:, :] mean,
     int[:] fringe,
     double threshold,
     bint reduce
@@ -44,7 +45,43 @@ cpdef void _focal_mean(
                 if count_values < threshold:
                     continue
 
-                r[i, j] = a_sum / count_values
+                mean[i, j] = a_sum / count_values
+
+
+cpdef void _focal_mean_std(
+    numeric[:, :, :, :] a,
+    np.npy_uint8[:, ::1] mask,
+    double[:, :] mean,
+    double[: ,:] std,
+    int[:] fringe,
+    double threshold,
+    bint reduce
+):
+    cdef:
+        size_t i, j, p, q, count_values
+        numeric[:, :] window
+        WelfordState ws
+
+    with nogil:
+        for i in range(a.shape[0]):
+            for j in range(a.shape[1]):
+                window = a[i, j]
+
+                if not reduce and isnan(window[fringe[0], fringe[1]]):
+                    continue
+
+                ws_reset(&ws)
+
+                for p in range(mask.shape[0]):
+                    for q in range(mask.shape[1]):
+                        if not isnan(window[p, q]) and mask[p, q]:
+                            ws_add(&ws, window[p, q])
+
+                if ws.count < threshold:
+                    continue
+
+                mean[i, j] = ws_mean(&ws)
+                std[i, j] = ws_std(&ws, 0)
 
 
 cpdef void _focal_mean_bootstrap(
@@ -63,20 +100,14 @@ cpdef void _focal_mean_bootstrap(
         numeric[:, :] window
         double a_sum
         double* window_values
-        double* means
-        CyBootstrapMeanResult r
-        RandomInts rng
+        WelfordState result
+        Random rng
 
     window_values = <double *> malloc(mask.shape[0] * mask.shape[1] * sizeof(double))
     if window_values == NULL:
-        raise MemoryError("'values' memory allocation failed")
+        raise MemoryError("'window_values' memory allocation failed")
 
-    means = <double *> malloc(n_bootstraps * sizeof(double))
-    if means == NULL:
-        free(window_values)
-        raise MemoryError("Memory allocation failed")
-
-    rng = RandomInts(seed if seed != 0 else None)
+    rng = Random(seed if seed != 0 else None)
 
     with nogil:
         for i in range(a.shape[0]):
@@ -97,16 +128,15 @@ cpdef void _focal_mean_bootstrap(
                 if count_values == 0 or count_values < threshold:
                     continue
 
-                r = _bootstrap_mean(
+                bootstrap_mean(
                     v=window_values,
                     n_samples=count_values,
-                    n_bootstraps=n_bootstraps,
+                    n_boot=n_bootstraps,
                     rng=rng,
-                    means=means
+                    result=&result
                 )
 
-                mean[i, j] = r.mean
-                se[i, j] = r.se
+                mean[i, j] = ws_mean(&result)
+                se[i, j] = ws_std(&result)
 
     free(window_values)
-    free(means)

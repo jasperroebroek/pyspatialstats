@@ -6,22 +6,20 @@ import numpy as np
 from numpy.random import PCG64
 
 from cpython.pycapsule cimport PyCapsule_IsValid, PyCapsule_GetPointer
-from libc.stdint cimport uint64_t
+from libc.stdint cimport uint64_t, int64_t
 from numpy.random cimport bitgen_t
-from numpy.random.c_distributions cimport random_bounded_uint64
-
+from numpy.random.c_distributions cimport random_bounded_uint64, random_poisson
 
 cdef const char *capsule_name = "BitGenerator"
 
 
-cdef class RandomInts:
+cdef class Random:
     """
-    Code adapted from a mix of the numpy documentation and
-    https://gist.github.com/ev-br/3d3e5b9682ef8c147e457e9cd2b190a0
+    This Cython class uses NumPy’s PCG64 bit generator for fast random number generation.
 
-    Not safe for multi-threading, race conditions occur
-
-    Drawn values are exclusive of bound
+    Note:
+    - `np_randints(bound, n)`: generates `n` random integers in `[0, bound)`
+    - `np_randpoisson(lam, n)`: generates `n` samples from Poisson distribution with mean `lam`
     """
     def __init__(self, seed=0):
         self.py_gen= PCG64(seed)
@@ -30,7 +28,7 @@ cdef class RandomInts:
             raise ValueError("Invalid pointer to anon_func_state")
         self.rng = <bitgen_t *> PyCapsule_GetPointer(capsule, capsule_name)
 
-    cdef inline uint64_t next_value(self, uint64_t bound) noexcept nogil:
+    cdef inline uint64_t integer(self, uint64_t bound) noexcept nogil:
         """random_bounded_uint64 returns a value including rng"""
         return random_bounded_uint64(self.rng, off=0, rng=bound - 1, mask=0, use_masked=0)
 
@@ -40,9 +38,25 @@ cdef class RandomInts:
             uint64_t[:] r = np.empty(n, dtype=np.uint64)
 
         for i in range(n):
-            r[i] = self.next_value(bound)
+            r[i] = self.integer(bound)
+
+        return r
+
+    cdef inline int64_t poisson(self, double lam) noexcept nogil:
+        return random_poisson(self.rng, lam)
+
+    cdef int64_t[:] randpoisson(self, double lam, int n):
+        cdef:
+            int i
+            int64_t[:] r = np.empty(n, dtype=np.int64)
+
+        for i in range(n):
+            r[i] = self.poisson(lam)
 
         return r
 
     def np_randints(self, bound: int, n: int) -> np.ndarray:
         return np.asarray(self.randints(bound, n))
+
+    def np_randpoisson(self, lam: float, n: int) -> np.ndarray:
+        return np.asarray(self.randpoisson(lam, n))

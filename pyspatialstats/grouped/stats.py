@@ -1,354 +1,387 @@
+from typing import Literal, Optional
+
 import numpy as np
 import pandas as pd
 
-from pyspatialstats.grouped.core.correlation import (
-    grouped_correlation_npy,
-    grouped_correlation_npy_filtered,
+from pyspatialstats.bootstrap.config import BootstrapConfig
+from pyspatialstats.grouped.accumulators import (
+    GroupedBootstrapMeanAccumulator,
+    GroupedCorrelationAccumulator,
+    GroupedCountAccumulator,
+    GroupedLinearRegressionAccumulator,
+    GroupedMaxAccumulator,
+    GroupedMinAccumulator,
+    GroupedSumAccumulator,
+    GroupedWelfordAccumulator,
 )
-from pyspatialstats.grouped.core.count import (
-    grouped_count_npy,
-    grouped_count_npy_filtered,
-)
-from pyspatialstats.grouped.core.linear_regression import (
-    grouped_linear_regression_npy,
-    grouped_linear_regression_npy_filtered,
-)
-from pyspatialstats.grouped.core.max import (
-    grouped_max_npy,
-    grouped_max_npy_filtered,
-)
-from pyspatialstats.grouped.core.mean import (
-    grouped_mean_npy,
-    grouped_mean_npy_filtered,
-)
-from pyspatialstats.grouped.core.min import (
-    grouped_min_npy,
-    grouped_min_npy_filtered,
-)
-from pyspatialstats.grouped.core.std import (
-    grouped_std_npy,
-    grouped_std_npy_filtered,
-)
-from pyspatialstats.grouped.utils import (
-    generate_index,
-    grouped_fun,
-    grouped_fun_pd,
-    parse_array,
-)
-from pyspatialstats.types.results import CorrelationResult, LinearRegressionResult
+from pyspatialstats.grouped.accumulators.linear_regression import GroupedBootstrapLinearRegressionAccumulator
+from pyspatialstats.grouped.base import grouped_stats
+from pyspatialstats.grouped.config import GroupedResultConfig
+from pyspatialstats.grouped.utils import parse_data_linear_regression
+from pyspatialstats.results.stats import RegressionResult, MeanResult
+from pyspatialstats.types.arrays import Array
+from pyspatialstats.utils import timeit
 
 
-def grouped_max(ind: np.ndarray, v: np.ndarray) -> np.ndarray[tuple[int], np.float64]:
+@timeit
+def grouped_max(
+    ind: Array,
+    v: Array,
+    filtered: bool = True,
+    chunks: Optional[int | tuple[int, ...]] = None,
+    verbose: bool = False,  # noqa
+) -> np.ndarray[tuple[int], np.float64] | pd.DataFrame:
     """
-    Compute the maximum of each index.
+    Compute the maximum at each index.
 
     Parameters
     ----------
     ind : array-like
-        two-dimensional index labels
+        index labels
     v : array-like
-        two-dimensional data
+        data
+    filtered : bool, optional
+        Filter the output in a pandas dataframe, which is the default. If False, this function returns the raw output,
+        where the index of the value corresponds to the index labels.
+    chunks : int or tuple of ints, optional
+        Optional chunking of the data, which can be run in parallel in a joblib context
+    verbose : bool, optional
+        Print timing
 
     Returns
     -------
-    maxima : np.ndarray
-        The maximum of each index.
+    maxima : np.ndarray or pd.DataFrame
+        The maximum at each index.
     """
-    return grouped_fun(grouped_max_npy, ind=ind, v=v)
+    return grouped_stats(
+        ind=ind, v=v, filtered=filtered, chunks=chunks, config=GroupedResultConfig(GroupedMaxAccumulator)
+    )
 
 
-def grouped_max_pd(ind: np.ndarray, v: np.ndarray) -> pd.DataFrame:
+@timeit
+def grouped_min(
+    ind: Array,
+    v: Array,
+    filtered: bool = True,
+    chunks: Optional[int | tuple[int, ...]] = None,
+    verbose: bool = False,  # noqa
+) -> np.ndarray[tuple[int], np.float64] | pd.DataFrame:
     """
-    Compute the maximum of each stratum in a pandas DataFrame
+    Compute the minimum at each index.
 
     Parameters
     ----------
     ind : array-like
-        two-dimensional index labels
+        index labels
     v : array-like
-        two-dimensional data
+        data
+    filtered : bool, optional
+        Filter the output in a pandas dataframe, which is the default. If False, this function returns the raw output,
+        where the index of the value corresponds to the index labels.
+    chunks : int or tuple of ints, optional
+        Optional chunking of the data, which can be run in parallel in a joblib context
+    verbose : bool, optional
+        Print timing
 
     Returns
     -------
-    maxima : pd.DataFrame
-        The maximum of each stratum.
+    minima : np.ndarray or pd.DataFrame
+        The minimum at each index.
     """
-    return grouped_fun_pd(grouped_max_npy_filtered, name='maximum', ind=ind, v=v)
+    return grouped_stats(
+        ind=ind, v=v, filtered=filtered, chunks=chunks, config=GroupedResultConfig(GroupedMinAccumulator)
+    )
 
 
-def grouped_min(ind: np.ndarray, v: np.ndarray) -> np.ndarray[tuple[int], np.float64]:
+@timeit
+def grouped_count(
+    ind: Array,
+    v: Array,
+    filtered: bool = True,
+    chunks: Optional[int | tuple[int, ...]] = None,
+    verbose: bool = False,  # noqa
+) -> np.ndarray[tuple[int], np.uintp] | pd.DataFrame:
     """
-    Compute the minimum of each stratum.
+    Compute the count of each index. NaN values in v are ignored
 
     Parameters
     ----------
     ind : array-like
-        two-dimensional index labels
+        index labels
     v : array-like
-        two-dimensional data
+        data
+    filtered : bool, optional
+        Filter the output in a pandas dataframe, which is the default. If False, this function returns the raw output,
+        where the index of the value corresponds to the index labels.
+    chunks : int or tuple of ints, optional
+        Optional chunking of the data, which can be run in parallel in a joblib context
+    verbose : bool, optional
+        Print timing
 
     Returns
     -------
-    minima : np.ndarray
-        The minimum of each stratum.
-    """
-    return grouped_fun(grouped_min_npy, ind=ind, v=v)
-
-
-def grouped_min_pd(ind: np.ndarray, v: np.ndarray) -> pd.DataFrame:
-    """
-    Compute the minimum of each stratum in a pandas DataFrame.
-
-        Parameters
-    ----------
-    ind : array-like
-        two-dimensional index labels
-    v : array-like
-        two-dimensional data
-
-    Returns
-    -------
-    minima : pd.DataFrame
-        The minimum of each index.
-    """
-    return grouped_fun_pd(grouped_min_npy_filtered, name='minimum', ind=ind, v=v)
-
-
-def grouped_count(ind: np.ndarray, v: np.ndarray) -> np.ndarray[tuple[int], np.uintp]:
-    """
-    Compute the count of each index.
-
-    Parameters
-    ----------
-    ind : array-like
-        two-dimensional index labels
-    v : array-like
-        two-dimensional data
-
-    Returns
-    -------
-    counts : np.ndarray
+    counts : np.ndarray or pd.DataFrame
         The count of each index.
     """
-    return grouped_fun(grouped_count_npy, ind=ind, v=v)
+    return grouped_stats(
+        ind=ind, v=v, filtered=filtered, chunks=chunks, config=GroupedResultConfig(GroupedCountAccumulator)
+    )
 
 
-def grouped_count_pd(ind: np.ndarray, v: np.ndarray) -> pd.DataFrame:
+@timeit
+def grouped_sum(
+    ind: Array,
+    v: Array,
+    filtered: bool = True,
+    chunks: Optional[int | tuple[int, ...]] = None,
+    verbose: bool = False,  # noqa
+) -> np.ndarray[tuple[int], np.uintp] | pd.DataFrame:
     """
-    Compute the count of each index in a pandas DataFrame.
+    Compute the sum at each index
 
     Parameters
     ----------
     ind : array-like
-        two-dimensional index labels
+        index labels
     v : array-like
-        two-dimensional data
+        data
+    filtered : bool, optional
+        Filter the output in a pandas dataframe, which is the default. If False, this function returns the raw output,
+        where the index of the value corresponds to the index labels.
+    chunks : int or tuple of ints, optional
+        Optional chunking of the data, which can be run in parallel in a joblib context
+    verbose : bool, optional
+        Print timing
 
     Returns
     -------
-    counts : pd.DataFrame
+    counts : np.ndarray or pd.DataFrame
         The count of each index.
     """
-    return grouped_fun_pd(grouped_count_npy_filtered, name='count', ind=ind, v=v)
+    return grouped_stats(
+        ind=ind, v=v, filtered=filtered, chunks=chunks, config=GroupedResultConfig(GroupedSumAccumulator)
+    )
 
 
-def grouped_mean(ind: np.ndarray, v: np.ndarray) -> np.ndarray[tuple[int], np.float64]:
+@timeit
+def grouped_mean(
+    ind: Array,
+    v: Array,
+    filtered: bool = True,
+    chunks: Optional[int | tuple[int, ...]] = None,
+    std_df: Literal[0, 1] = 1,
+    error: Optional[Literal['bootstrap', 'parametric']] = None,
+    bootstrap_config: Optional[BootstrapConfig] = None,
+    verbose: bool = False,  # noqa
+) -> MeanResult | pd.DataFrame:
     """
     Compute the mean of each index.
 
         Parameters
     ----------
     ind : array-like
-        two-dimensional index labels
+        index labels
     v : array-like
-        two-dimensional data
+        data
+    filtered : bool, optional
+        Filter the output in a pandas dataframe, which is the default. If False, this function returns the raw output,
+        where the index of the value corresponds to the index labels.
+    chunks : int or tuple of ints, optional
+        Optional chunking of the data, which can be run in parallel in a joblib context
+    std_df : {0, 1}, optional
+        Degrees of freedom for the standard deviation if error is 'parametric'
+    error : {'bootstrap', 'parametric'}, optional
+        Compute the uncertainty of the mean using either a bootstrap or parametric method. If not set, the function only
+        returns the mean. With bootstrap, the standard error is returned, and with parametric, the standard error and
+        standard deviation are returned
+    bootstrap_config : BootstrapConfig, optional
+        Configuration for the bootstrap if error is 'bootstrap'
+    verbose : bool, optional
+        Print timing
 
     Returns
     -------
-    means : np.ndarray
-        The mean of each index.
+    MeanStatResult or pd.DataFrame
+        The mean of each index. If filtered is True, this function returns a pandas DataFrame otherwise it returns a
+        MeanStatResult object.
     """
-    return grouped_fun(grouped_mean_npy, ind=ind, v=v)
+    if bootstrap_config is None:
+        bootstrap_config = BootstrapConfig()
+
+    match error:
+        case 'bootstrap':
+            config = GroupedResultConfig(
+                GroupedBootstrapMeanAccumulator,
+                kwargs={'n_boot': bootstrap_config.n_bootstraps, 'seed': bootstrap_config.seed},
+            )
+        case 'parametric':
+            config = GroupedResultConfig(
+                GroupedWelfordAccumulator,
+                kwargs={'std_df': std_df},
+                to_result_func='to_mean_std_result',
+                to_filtered_result_func='to_mean_std_filtered_result',
+            )
+        case None:
+            config = GroupedResultConfig(
+                GroupedSumAccumulator,
+                to_result_func='to_mean_result',
+                to_filtered_result_func='to_mean_filtered_result',
+            )
+        case _:
+            raise ValueError('error must be either "bootstrap" or "parametric"')
+
+    return grouped_stats(ind=ind, v=v, filtered=filtered, chunks=chunks, config=config)
 
 
-def grouped_mean_pd(ind: np.ndarray, v: np.ndarray) -> pd.DataFrame:
+@timeit
+def grouped_std(
+    ind: Array,
+    v: Array,
+    filtered: bool = True,
+    chunks: Optional[int | tuple[int, ...]] = None,
+    std_df: Literal[0, 1] = 1,
+    verbose: bool = False,  # noqa
+) -> np.ndarray[tuple[int], np.float64]:
     """
-    Compute the mean of each index in a pandas DataFrame.
+    Compute the standard deviation at each index.
 
         Parameters
     ----------
     ind : array-like
-        two-dimensional index labels
+        index labels
     v : array-like
-        two-dimensional data
-
-    Returns
-    -------
-    means : pd.DataFrame
-        The mean of each index.
-    """
-    return grouped_fun_pd(grouped_mean_npy_filtered, name='mean', ind=ind, v=v)
-
-
-def grouped_std(ind: np.ndarray, v: np.ndarray) -> np.ndarray[tuple[int], np.float64]:
-    """
-    Compute the standard deviation of each index.
-
-        Parameters
-    ----------
-    ind : array-like
-        two-dimensional index labels
-    v : array-like
-        two-dimensional data
+        data
+    filtered : bool, optional
+        Filter the output in a pandas dataframe, which is the default. If False, this function returns the raw output,
+        where the index of the value corresponds to the index labels.
+    chunks : int or tuple of ints, optional
+        Optional chunking of the data, which can be run in parallel in a joblib context
+    verbose : bool, optional
+        Print timing
 
     Returns
     -------
     stds : np.ndarray
-        The standard deviation of each index.
+        The standard deviation at each index.
     """
-    return grouped_fun(grouped_std_npy, ind=ind, v=v)
+    return grouped_stats(
+        ind=ind,
+        v=v,
+        filtered=filtered,
+        chunks=chunks,
+        config=GroupedResultConfig(
+            GroupedWelfordAccumulator,
+            to_result_func='to_std_result',
+            to_filtered_result_func='to_std_filtered_result',
+            kwargs={'std_df': std_df},
+        ),
+    )
 
 
-def grouped_std_pd(ind: np.ndarray, v: np.ndarray) -> pd.DataFrame:
+@timeit
+def grouped_correlation(
+    ind: Array,
+    v1: Array,
+    v2: Array,
+    filtered: bool = True,
+    chunks: Optional[int | tuple[int, ...]] = None,
+    verbose: bool = False,  # noqa
+) -> np.ndarray[tuple[int], np.float64]:
     """
-    Compute the standard deviation of each index in a pandas DataFrame.
+    Compute the standard deviation at each index.
 
         Parameters
     ----------
     ind : array-like
-        two-dimensional index labels
-    v : array-like
-        two-dimensional data
-
-    Returns
-    -------
-    stds : pd.DataFrame
-        The standard deviation of each index.
-    """
-    return grouped_fun_pd(grouped_std_npy_filtered, name='std', ind=ind, v=v)
-
-
-def grouped_mean_std_pd(ind: np.ndarray, v: np.ndarray) -> pd.DataFrame:
-    """
-    Compute the mean and standard deviation of each index in a pandas DataFrame.
-
-    Parameters
-    ----------
-    ind : array-like
-        two-dimensional index labels
-    v : array-like
-        two-dimensional data
-
-    Returns
-    -------
-    pd.DataFrame
-        The mean and standard deviation of each index.
-    """
-    ind = parse_array('ind', ind).ravel()
-    v = parse_array('v', v).ravel()
-
-    if ind.size != v.size:
-        raise IndexError(f'Arrays are not all of the same size: {ind.size=}, {v.size=}')
-
-    index = generate_index(ind, v)
-    mean_v = grouped_mean_npy_filtered(ind, v)
-    std_v = grouped_std_npy_filtered(ind, v)
-
-    return pd.DataFrame(data={'mean': mean_v, 'std': std_v}, index=index)
-
-
-def grouped_correlation(ind: np.ndarray, v1: np.ndarray, v2: np.ndarray) -> CorrelationResult:
-    """
-    Compute the correlation of each index.
-
-    Parameters
-    ----------
-    ind : array-like
-        two-dimensional index labels
+        index labels
     v1, v2 : array-like
-        two-dimensional data
+        data
+    filtered : bool, optional
+        Filter the output in a pandas dataframe, which is the default. If False, this function returns the raw output,
+        where the index of the value corresponds to the index labels.
+    chunks : int or tuple of ints, optional
+        Optional chunking of the data, which can be run in parallel in a joblib context
+    verbose : bool, optional
+        Print timing
 
     Returns
     -------
-    GroupedCorrelationResult
-        The correlation of each index. The Namedtuple will include the following attributes:
-            c: the correlation coefficient
-            p: the p-value
-    """
-    return grouped_fun(grouped_correlation_npy, ind=ind, v1=v1, v2=v2)
-
-
-def grouped_correlation_pd(ind: np.ndarray, v1: np.ndarray, v2: np.ndarray) -> pd.DataFrame:
-    """
-    Compute the correlation of each index in a pandas DataFrame.
-
-    Parameters
-    ----------
-    ind : array-like
-        two-dimensional index labels
-    v1, v2 : array-like
-        two-dimensional data
-
-    Returns
-    -------
-    pd.DataFrame
-        The correlation of each index. The DataFrame will include the following columns:
-        * c: the correlation coefficient
+    CorrelationResult
+        The pearson correlation at each index.
+        * r: the correlation coefficient
+        * df: degrees of freedom
         * p: the p-value
     """
-    return grouped_fun_pd(grouped_correlation_npy_filtered, name='correlation', ind=ind, v1=v1, v2=v2)
+    return grouped_stats(
+        ind=ind,
+        v1=v1,
+        v2=v2,
+        filtered=filtered,
+        chunks=chunks,
+        config=GroupedResultConfig(GroupedCorrelationAccumulator),
+    )
 
 
-def grouped_linear_regression(ind: np.ndarray, v1: np.ndarray, v2: np.ndarray) -> LinearRegressionResult:
+@timeit
+def grouped_linear_regression(
+    ind: Array,
+    x: Array,
+    y: Array,
+    filtered: bool = True,
+    chunks: Optional[int | tuple[int, ...]] = None,
+    error: Literal['bootstrap', 'parametric'] = 'parametric',
+    bootstrap_config: Optional[BootstrapConfig] = None,
+    verbose: bool = False,  # noqa
+) -> RegressionResult:
     """
-    Compute the linear regression of each index.
+    Compute the linear regression at each index.
 
     Parameters
     ----------
     ind : array-like
-        two-dimensional index labels
-    v1, v2 : array-like
-        two-dimensional data
+        index labels
+    x : array-like
+        Independent variables. Must have more one more dimension than y, the last dimension is the number of independent
+        variables
+    y: array-like
+        dependent variable
+    filtered : bool, optional
+        Filter the output in a pandas dataframe, which is the default. If False, this function returns the raw output,
+        where the index of the value corresponds to the index labels.
+    chunks : int or tuple of ints, optional
+        Optional chunking of the data, which can be run in parallel in a joblib context
+    error : {'bootstrap', 'parametric'}, optional
+        Compute the uncertainty of the linear regression parameters using either a bootstrap or parametric method. If
+        not set, the function does not return the uncertainty.
+    bootstrap_config : BootstrapConfig, optional
+        Configuration for the bootstrap if error is 'bootstrap'
+    verbose : bool, optional
+        Print timing
 
     Returns
     -------
-    GroupedLinearRegressionResult
-        The linear regression of each index.
-        LinearRegressionResult is a named tuple with the following attributes:
-        * a: the slope
-        * b: the intercept
-        * se_a: the standard error of the slope
-        * se_b: the standard error of the intercept
-        * t_a: the t-statistic of the slope
-        * t_b: the t-statistic of the intercept
-        * p_a: the p-value of the slope
-        * p_b: the p-value of the intercept
+    RegressionResult
+        The linear regression at each index.
+        * df: degrees of freedom
+        * beta: the slope
+        * se: the standard error of the slope
+        * t: the t-statistic
+        * p: the p-value
     """
-    return grouped_fun(grouped_linear_regression_npy, ind=ind, v1=v1, v2=v2)
+    if bootstrap_config is None:
+        bootstrap_config = BootstrapConfig()
 
-
-def grouped_linear_regression_pd(ind: np.ndarray, v1: np.ndarray, v2: np.ndarray) -> pd.DataFrame:
-    """
-    Compute the linear regression of each index in a pandas DataFrame.
-
-    Parameters
-    ----------
-    ind : array-like
-        two-dimensional index labels
-    v1, v2 : array-like
-        two-dimensional data
-
-    Returns
-    -------
-    pd.DataFrame
-        The linear regression of each index. The DataFrame will include the following columns:
-        * a: the slope
-        * b: the intercept
-        * se_a: the standard error of the slope
-        * se_b: the standard error of the intercept
-        * t_a: the t-statistic of the slope
-        * t_b: the t-statistic of the intercept
-        * p_a: the p-value of the slope
-        * p_b: the p-value of the intercept
-    """
-    return grouped_fun_pd(grouped_linear_regression_npy_filtered, name='lr', ind=ind, v1=v1, v2=v2)
+    match error:
+        case 'bootstrap':
+            config = GroupedResultConfig(
+                GroupedBootstrapLinearRegressionAccumulator,
+                parse_data_fun=parse_data_linear_regression,
+                kwargs={'n_boot': bootstrap_config.n_bootstraps, 'seed': bootstrap_config.seed},
+            )
+        case 'parametric':
+            config = GroupedResultConfig(
+                GroupedLinearRegressionAccumulator, parse_data_fun=parse_data_linear_regression
+            )
+        case _:
+            raise ValueError('error must be either "bootstrap" or "parametric"')
+    return grouped_stats(ind=ind, x=x, y=y, filtered=filtered, chunks=chunks, config=config)

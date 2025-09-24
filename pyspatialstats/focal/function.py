@@ -8,7 +8,7 @@ from numpy.typing import DTypeLike, NDArray
 
 from pyspatialstats.types.windows import WindowT
 from pyspatialstats.utils import timeit
-from pyspatialstats.views import RasterViewPair, construct_window_views
+from pyspatialstats.views import ArrayViewPair, construct_window_views
 from pyspatialstats.windows import Window, define_window
 
 
@@ -77,7 +77,7 @@ def process_window(
     fn: Callable,
     inputs: Dict[str, NDArray],
     outputs: Dict[str, NDArray],
-    views: RasterViewPair,
+    views: ArrayViewPair,
     **kwargs,
 ) -> None:
     input_slices = views.input.slices
