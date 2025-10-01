@@ -8,6 +8,7 @@ dependencies:
   - scipy
   - joblib
   - pydantic
-  - numpydantic
   - pandas
   - statsmodels
+  - xarray
+  - scikit-learn
