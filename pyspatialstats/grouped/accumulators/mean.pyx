@@ -10,7 +10,7 @@ import numpy as np
 from pyspatialstats.grouped.indices.max cimport _define_max_ind
 from pyspatialstats.grouped.accumulators.base cimport BaseGroupedBootstrapAccumulator
 from pyspatialstats.stats.welford cimport WelfordState, ws_new, ws_add, ws_std, ws_reset, ws_mean
-from numpy.math cimport isnan
+from libc.math cimport isnan
 from libc.stdlib cimport free
 from libc.string cimport memcpy
 

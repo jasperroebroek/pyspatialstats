@@ -4,7 +4,7 @@
 
 from libc.string cimport memcpy
 from libc.math cimport fmin
-from numpy.math cimport isnan
+from libc.math cimport isnan
 from pyspatialstats.grouped.indices.max cimport _define_max_ind
 from pyspatialstats.grouped.accumulators.base cimport GroupedFloatStatAccumulator
 

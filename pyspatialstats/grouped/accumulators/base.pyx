@@ -6,7 +6,7 @@ from typing import Optional
 
 cimport numpy as cnp
 import numpy as np
-from numpy.math cimport NAN
+from libc.math cimport NAN
 from libc.stdlib cimport free, malloc, calloc
 from libc.string cimport memset
 

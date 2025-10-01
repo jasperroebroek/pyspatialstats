@@ -51,7 +51,7 @@ def grouped_linear_regression(error='parametric', n_bootstraps=1000, *args, **kw
     return grouped_linear_regression_internal(*args, error=error, **kwargs)
 
 
-@pytest.mark.parametrize('error', ['bootstrap', 'parametric'])
+@pytest.mark.parametrize('error', [None, 'bootstrap', 'parametric'])
 def test_py_grouped_linear_regression_with_example_data(rs, error):
     n = 1000
     ind = np.ones(n, dtype=np.uintp)
@@ -61,25 +61,28 @@ def test_py_grouped_linear_regression_with_example_data(rs, error):
 
     result = grouped_linear_regression(ind=ind, x=x, y=y, filtered=False, error=error)
 
-    assert result.df[0] == 0
+    assert result.df[0] == -1  # too few observations
     assert np.all(np.isnan(result.beta[0]))
-    assert np.all(np.isnan(result.beta_se[0]))
-    assert np.all(np.isnan(result.t[0]))
-    assert np.all(np.isnan(result.p[0]))
-    assert np.isnan(result.r_squared[0])
-
-    if error == 'parametric':
-        assert result.r_squared_se is None
-    else:
-        assert np.isnan(result.r_squared_se[0])
-
     assert np.allclose(result.beta[1], [0, 2], atol=0.1)
-    assert np.allclose(result.beta_se[1], [0.03, 0.03], atol=0.01)
-    assert np.allclose(result.p[1], [1, 0], atol=0.2)
-    assert np.allclose(result.r_squared[1], 0.8, atol=0.8)
+
+    if error is not None:
+        assert np.all(np.isnan(result.beta_se[0]))
+        assert np.all(np.isnan(result.p[0]))
+        assert np.isnan(result.r_squared[0])
+
+        assert np.allclose(result.beta_se[1], [0.03, 0.03], atol=0.01)
+        assert np.allclose(result.p[1], [1, 0], atol=0.2)
+        assert np.allclose(result.r_squared[1], 0.8, atol=0.8)
+    else:
+        assert result.beta_se is None
+        assert result.p is None
+        assert result.r_squared is None
 
     if error == 'bootstrap':
+        assert np.isnan(result.r_squared_se[0])
         assert np.isclose(result.r_squared_se[1], 0.01, atol=0.1)
+    else:
+        assert result.r_squared_se is None
 
 
 @pytest.mark.parametrize('error', ['bootstrap', 'parametric'])
@@ -273,5 +276,5 @@ def test_grouped_linear_regression_non_overlapping_data(rs, error):
     y[5:] = np.nan
 
     result = grouped_linear_regression(ind=ind, x=x, y=y, filtered=False, error=error)
-    assert np.allclose(result.df, 0)
+    assert np.allclose(result.df, -1)  # -1 indicates that not enough data to calculate the result
     assert np.all(np.isnan(result.beta))

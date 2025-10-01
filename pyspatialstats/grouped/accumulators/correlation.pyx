@@ -11,7 +11,7 @@ from libc.string cimport memcpy
 from pyspatialstats.stats.correlation cimport CorrelationState, crs_array_new, crs_corr, crs_add, crs_merge, crs_new
 from pyspatialstats.grouped.indices.max cimport _define_max_ind
 from pyspatialstats.grouped.accumulators.base cimport BaseGroupedStatAccumulator
-from numpy.math cimport isnan
+from libc.math cimport isnan
 
 
 cdef class GroupedCorrelationAccumulator(BaseGroupedStatAccumulator):

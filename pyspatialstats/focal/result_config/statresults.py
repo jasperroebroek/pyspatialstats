@@ -4,6 +4,7 @@ from typing import Literal, Optional
 import numpy as np
 from numpy.typing import DTypeLike
 
+from pyspatialstats.enums import ErrorType
 from pyspatialstats.focal.result_config.dataclass import FocalDataClassResultConfig
 from pyspatialstats.results.stats import CorrelationResult, MeanResult, RegressionResult
 from pyspatialstats.rolling import rolling_window
@@ -63,6 +64,11 @@ class FocalCorrelationResultConfig(FocalDataClassResultConfig):
 class FocalLinearRegressionResultConfig(FocalDataClassResultConfig):
     nf: int = 2
     x_ndim: int = 2
+    error: Optional[ErrorType] = None
+
+    def __post_init__(self):
+        if self.error is not None and self.error not in ('bootstrap', 'parametric'):
+            raise ValueError(f'Error not understood: {self.error}')
 
     @property
     def return_type(self) -> type[RegressionResult]:
@@ -70,7 +76,13 @@ class FocalLinearRegressionResultConfig(FocalDataClassResultConfig):
 
     @property
     def active_fields(self) -> tuple[str, ...]:
-        return tuple(field for field in self.fields if field != 'r_squared_se')
+        match self.error:
+            case 'parametric':
+                return tuple(field for field in self.fields if field != 'r_squared_se')
+            case 'bootstrap':
+                return self.fields
+            case None:
+                return ('df', 'beta')
 
     @property
     def cy_fields(self) -> tuple[str, ...]:

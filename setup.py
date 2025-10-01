@@ -12,22 +12,23 @@ misc_extensions = [
         'pyspatialstats.random.random',
         ['pyspatialstats/random/random.pyx'],
     ),
+]
+
+bootstrap_extensions = [
     Extension(
         'pyspatialstats.bootstrap.mean',
         ['pyspatialstats/bootstrap/mean.pyx'],
     ),
+    Extension(
+        'pyspatialstats.bootstrap.linear_regression',
+        ['pyspatialstats/bootstrap/linear_regression.pyx'],
+    ),
 ]
 
 stat_extensions = [
-    Extension('pyspatialstats.stats.linear_regression',
-              ['pyspatialstats/stats/linear_regression.pyx']
-    ),
-    Extension('pyspatialstats.stats.correlation',
-              ['pyspatialstats/stats/correlation.pyx']
-    ),
-    Extension('pyspatialstats.stats.welford',
-              ['pyspatialstats/stats/welford.pyx']
-    ),
+    Extension('pyspatialstats.stats.linear_regression', ['pyspatialstats/stats/linear_regression.pyx']),
+    Extension('pyspatialstats.stats.correlation', ['pyspatialstats/stats/correlation.pyx']),
+    Extension('pyspatialstats.stats.welford', ['pyspatialstats/stats/welford.pyx']),
 ]
 
 focal_stat_extensions = [
@@ -111,6 +112,8 @@ grouped_stat_extensions = [
 
 setup(
     packages=find_packages(),
-    ext_modules=cythonize(misc_extensions + stat_extensions + grouped_stat_extensions + focal_stat_extensions),
+    ext_modules=cythonize(
+        misc_extensions + bootstrap_extensions + stat_extensions + grouped_stat_extensions + focal_stat_extensions
+    ),
     include_dirs=[numpy.get_include()],
 )

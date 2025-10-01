@@ -5,7 +5,7 @@
 from libc.stdlib cimport free
 cimport numpy as cnp
 import numpy as np
-from numpy.math cimport isnan
+from libc.math cimport isnan
 from pyspatialstats.grouped.indices.max cimport _define_max_ind
 from pyspatialstats.grouped.accumulators.base cimport BaseGroupedStatAccumulator, BaseGroupedBootstrapAccumulator
 from pyspatialstats.results.stats import IndexedGroupedStatResult
@@ -17,14 +17,14 @@ from pyspatialstats.stats.linear_regression cimport (
 from pyspatialstats.stats.linear_regression cimport LinearRegressionResult, lrr_new, lrr_free
 
 
-def empty_result(size: int, nf: int):
+def empty_result(size: int, nf: int, calc_se: bool = True, calc_r2: bool = True):
     return RegressionResult(
         df=np.full(size, fill_value=0, dtype=np.intp),
         beta=np.full((size, nf), fill_value=np.nan, dtype=np.float64),
-        beta_se=np.full((size, nf), fill_value=np.nan, dtype=np.float64),
-        t=np.full((size, nf), fill_value=np.nan, dtype=np.float64),
-        p=np.full((size, nf), fill_value=np.nan, dtype=np.float64),
-        r_squared=np.full(size, fill_value=np.nan, dtype=np.float64)
+        beta_se=np.full((size, nf), fill_value=np.nan, dtype=np.float64) if calc_se else None,
+        t=np.full((size, nf), fill_value=np.nan, dtype=np.float64) if calc_se else None,
+        p=np.full((size, nf), fill_value=np.nan, dtype=np.float64) if calc_se else None,
+        r_squared=np.full(size, fill_value=np.nan, dtype=np.float64) if calc_r2 else None
     )
 
 
@@ -33,6 +33,12 @@ cdef class GroupedLinearRegressionAccumulator(BaseGroupedStatAccumulator):
         self.nf = 1
         self.eltsize = sizeof(LinearRegressionState)
         self.resize(capacity)
+        self.calc_se = True
+        self.calc_r2 = True
+
+    def post_init(self, calc_se: bool = True, calc_r2: bool = True):
+        self.calc_se = calc_se
+        self.calc_r2 = calc_r2
 
     cdef int _reset_stat_v(self) except -1 nogil:
         cdef int r = lrs_array_init(self.get_stat_v(), self.capacity, self.nf)
@@ -126,7 +132,7 @@ cdef class GroupedLinearRegressionAccumulator(BaseGroupedStatAccumulator):
 
     def to_result(self):
         if self.capacity == 0 or self.nf == 0 or self.stat_v == NULL or self.count_v == NULL:
-            return empty_result(0, self.nf)
+            return empty_result(0, self.nf, self.calc_se, self.calc_r2)
 
         cdef:
             size_t i
@@ -134,30 +140,46 @@ cdef class GroupedLinearRegressionAccumulator(BaseGroupedStatAccumulator):
             LinearRegressionResult* lrr = lrr_new(self.nf)
             double[:] df = np.full(self.capacity, fill_value=np.nan, dtype=np.float64)
             double[:, :] beta = np.full((self.capacity, self.nf), fill_value=np.nan, dtype=np.float64)
-            double[:, :] beta_se = np.full((self.capacity, self.nf), fill_value=np.nan, dtype=np.float64)
-            double[:] r_squared = np.full(self.capacity, fill_value=np.nan, dtype=np.float64)
+            double[:, :] beta_se
+            double[:] r_squared
+
+        if self.calc_se:
+            beta_se = np.full((self.capacity, self.nf), fill_value=np.nan, dtype=np.float64)
+        if self.calc_r2:
+            r_squared = np.full(self.capacity, fill_value=np.nan, dtype=np.float64)
 
         for i in range(self.capacity):
-            lrs_to_result(&stat_v[i], lrr)
-            df[i] = lrr.df
-            if lrr.df <= 0:
+            lrs_to_result(&stat_v[i], lrr, self.calc_se, self.calc_r2)
+
+            if lrr.status > 0:
+                df[i] = -lrr.status
                 continue
-            r_squared[i] = lrr.r_squared
+
+            df[i] = lrr.df
+            if self.calc_r2:
+                r_squared[i] = lrr.r_squared
             for j in range(self.nf):
                 beta[i, j] = lrr.beta[j]
-                beta_se[i, j] = lrr.beta_se[j]
+            if self.calc_se:
+                for j in range(self.nf):
+                    beta_se[i, j] = lrr.beta_se[j]
 
         lrr_free(lrr)
 
-        np_t = beta.base / beta_se.base
+        if self.calc_se:
+            np_t = beta.base / beta_se.base
+            p = calculate_p_value(np_t, df.base[:, np.newaxis])
+        else:
+            np_t = None
+            p = None
 
         return RegressionResult(
             df=df.base,
             beta=beta.base,
-            beta_se=beta_se.base,
-            r_squared=r_squared.base,
+            beta_se=beta_se.base if self.calc_se else None,
+            r_squared=r_squared.base if self.calc_r2 else None,
             t=np_t,
-            p=calculate_p_value(np_t, df.base[:, np.newaxis])
+            p=p
         )
 
     def to_filtered_result(self):
@@ -168,39 +190,56 @@ cdef class GroupedLinearRegressionAccumulator(BaseGroupedStatAccumulator):
             size_t num_inds = indices.shape[0]
 
         if num_inds == 0 or self.nf == 0:
-            return IndexedGroupedStatResult(index=indices.base, result=empty_result(num_inds, self.nf))
+            return IndexedGroupedStatResult(index=indices.base, result=empty_result(num_inds, self.nf, self.calc_se, self.calc_r2))
 
         cdef:
             double[:] df = np.full(num_inds, fill_value=np.nan, dtype=np.float64)
             double[:, :] beta = np.full((num_inds, self.nf), fill_value=np.nan, dtype=np.float64)
-            double[:, :] beta_se = np.full((num_inds, self.nf), fill_value=np.nan, dtype=np.float64)
-            double[:] r_squared = np.full(num_inds, fill_value=np.nan, dtype=np.float64)
+            double[:, :] beta_se
+            double[:] r_squared
             size_t i, idx
+
+        if self.calc_se:
+            beta_se = np.full((num_inds, self.nf), fill_value=np.nan, dtype=np.float64)
+        if self.calc_r2:
+            r_squared = np.full(num_inds, fill_value=np.nan, dtype=np.float64)
 
         for i in range(num_inds):
             idx = indices[i]
-            lrs_to_result(&stat_v[idx], lrr)
-            df[i] = lrr.df
-            if lrr.df <= 0:
+            lrs_to_result(&stat_v[idx], lrr, self.calc_se, self.calc_r2)
+
+            if lrr.status > 0:
+                df[i] = -lrr.status
                 continue
-            r_squared[i] = lrr.r_squared
+
+            df[i] = lrr.df
+
+            if self.calc_r2:
+                r_squared[i] = lrr.r_squared
             for j in range(self.nf):
                 beta[i, j] = lrr.beta[j]
-                beta_se[i, j] = lrr.beta_se[j]
+            if self.calc_se:
+                for j in range(self.nf):
+                    beta_se[i, j] = lrr.beta_se[j]
 
         lrr_free(lrr)
 
-        np_t = beta.base / beta_se.base
+        if self.calc_se:
+            np_t = beta.base / beta_se.base
+            p = calculate_p_value(np_t, df.base[:, np.newaxis])
+        else:
+            np_t = None
+            p = None
 
         return IndexedGroupedStatResult(
             index=indices.base,
             result=RegressionResult(
                 df=df.base,
                 beta=beta.base,
-                beta_se=beta_se.base,
-                r_squared=r_squared.base,
+                beta_se=beta_se.base if self.calc_se else None,
+                r_squared=r_squared.base if self.calc_r2 else None,
                 t=np_t,
-                p=calculate_p_value(np_t, df.base[:, np.newaxis])
+                p=p
             )
         )
 
@@ -302,14 +341,16 @@ cdef class GroupedBootstrapLinearRegressionAccumulator(BaseGroupedBootstrapAccum
                 self.n_boot,
             )
 
-            df[i] = lrr.df
-            if lrr.df <= 0:
+            if lrr.status > 0:
+                df[i] = -lrr.status
                 continue
+
+            df[i] = lrr.df
+            r_squared[i] = lrr.r_squared
+            r_squared_se[i] = lrr.r_squared_se
             for j in range(self.nf):
                 beta[i, j] = lrr.beta[j]
                 beta_se[i, j] = lrr.beta_se[j]
-            r_squared[i] = lrr.r_squared
-            r_squared_se[i] = lrr.r_squared_se
 
         lrr_free(lrr)
 
@@ -354,17 +395,16 @@ cdef class GroupedBootstrapLinearRegressionAccumulator(BaseGroupedBootstrapAccum
                 lrr,
                 self.n_boot,
             )
-
-            df[i] = lrr.df
-            if lrr.df <= 0:
+            if lrr.status > 0:
+                df[i] = -lrr.status
                 continue
 
+            df[i] = lrr.df
+            r_squared[i] = lrr.r_squared
+            r_squared_se[i] = lrr.r_squared_se
             for j in range(self.nf):
                 beta[i, j] = lrr.beta[j]
                 beta_se[i, j] = lrr.beta_se[j]
-
-            r_squared[i] = lrr.r_squared
-            r_squared_se[i] = lrr.r_squared_se
 
         lrr_free(lrr)
 

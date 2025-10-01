@@ -107,7 +107,7 @@ cpdef void _focal_mean_bootstrap(
     if window_values == NULL:
         raise MemoryError("'window_values' memory allocation failed")
 
-    rng = Random(seed if seed != 0 else None)
+    rng = Random(seed)
 
     with nogil:
         for i in range(a.shape[0]):

@@ -72,7 +72,7 @@ FOCAL_STAT_FUNCTION_CONFIGS = {
     focal_max: FocalArrayResultConfig(),
     focal_std: FocalArrayResultConfig(),
     focal_majority: FocalArrayResultConfig(),
-    focal_linear_regression: FocalLinearRegressionResultConfig(),
+    focal_linear_regression: FocalLinearRegressionResultConfig(error='parametric'),
     focal_correlation: FocalCorrelationResultConfig(),
 }
 

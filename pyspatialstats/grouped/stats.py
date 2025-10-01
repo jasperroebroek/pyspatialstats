@@ -329,7 +329,7 @@ def grouped_linear_regression(
     y: Array,
     filtered: bool = True,
     chunks: Optional[int | tuple[int, ...]] = None,
-    error: Literal['bootstrap', 'parametric'] = 'parametric',
+    error: Optional[Literal['bootstrap', 'parametric']] = 'parametric',
     bootstrap_config: Optional[BootstrapConfig] = None,
     verbose: bool = False,  # noqa
 ) -> RegressionResult:
@@ -380,7 +380,13 @@ def grouped_linear_regression(
             )
         case 'parametric':
             config = GroupedResultConfig(
-                GroupedLinearRegressionAccumulator, parse_data_fun=parse_data_linear_regression
+                GroupedLinearRegressionAccumulator, parse_data_fun=parse_data_linear_regression,
+                kwargs={'calc_se': True, 'calc_r2': True},
+            )
+        case None:
+            config = GroupedResultConfig(
+                GroupedLinearRegressionAccumulator, parse_data_fun=parse_data_linear_regression,
+                kwargs={'calc_se': False, 'calc_r2': False},
             )
         case _:
             raise ValueError('error must be either "bootstrap" or "parametric"')

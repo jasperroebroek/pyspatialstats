@@ -4,7 +4,7 @@
 
 import numpy as np
 from libc.string cimport memset
-from numpy.math cimport NAN, isnan
+from libc.math cimport NAN, isnan
 from pyspatialstats.grouped.indices.max cimport _define_max_ind
 from pyspatialstats.grouped.accumulators.base cimport GroupedFloatStatAccumulator
 from pyspatialstats.results.stats import IndexedGroupedStatResult

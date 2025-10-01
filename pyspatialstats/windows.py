@@ -12,6 +12,8 @@ from pyspatialstats.types.arrays import Array, Mask, Shape
 
 
 class Window(ABC):
+    """Abstract base class for windows"""
+
     @abstractmethod
     def get_shape(self, ndim: int = 2) -> tuple[int, ...]:
         pass
@@ -29,11 +31,13 @@ class Window(ABC):
         pass
 
     def get_fringes(self, reduce: bool, ndim: int = 2) -> tuple[int, ...]:
+        """Get the fringes of the window, i.e. the number of pixels between the center and the edge of the window"""
         if reduce:
             return tuple(0 for _ in range(ndim))
         return tuple(x // 2 for x in self.get_shape(ndim))
 
     def get_ind_inner(self, reduce: bool, ndim: int = 2) -> tuple[slice, ...]:
+        """"Numpy compatible slices to remove the fringes from an array, where the values are NaN"""
         if reduce:
             return (slice(None),) * ndim
 
@@ -52,6 +56,8 @@ class Window(ABC):
         a: Optional[Array] = None,
         shape: Optional[Shape] = None,
     ) -> None:
+        """"Validate the window for a given array (`a`) or shape"""
+
         if a is None and shape is None:
             raise ValueError('Neither `a` nor shape are given')
         if a is not None and shape is not None:
@@ -75,6 +81,8 @@ class Window(ABC):
             raise ValueError(f'Window size cannot only contain 1s {window_shape=}')
 
     def define_windowed_shape(self, reduce: bool, a: Optional[Array] = None, shape: Optional[Shape] = None) -> Shape:
+        """Define the shape of the windowed array"""
+
         if a is None and shape is None:
             raise ValueError('Neither a nor shape are given')
 

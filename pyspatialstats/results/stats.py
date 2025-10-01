@@ -36,8 +36,8 @@ class CorrelationResult(StatResult):
 class RegressionResult(StatResult):
     df: SizeTResult
     beta: FloatResult
-    beta_se: FloatResult
-    t: FloatResult
+    beta_se: Optional[FloatResult] = None
+    t: Optional[FloatResult] = None
     p: Optional[FloatResult] = None
     r_squared: Optional[FloatResult] = None
     r_squared_se: Optional[FloatResult] = None

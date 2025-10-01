@@ -36,7 +36,7 @@ TO_RESULT_FUNC = {
     GroupedWelfordAccumulator: lambda x: x.to_std_result(),
     GroupedBootstrapMeanAccumulator: lambda x: x.to_result().mean,
     GroupedCorrelationAccumulator: lambda x: x.to_result().c,
-    GroupedLinearRegressionAccumulator: lambda x: x.to_result().r_squared,
+    GroupedLinearRegressionAccumulator: lambda x: x.to_result().beta[:, 0],
     GroupedBootstrapLinearRegressionAccumulator: lambda x: x.to_result().r_squared,
 }
 

@@ -1,3 +1,4 @@
 global-include *.pyx
 global-include *.pxd
-exclude focal_stats_base/*/*.c
+exclude pyspatialstats/*/*.c
+exclude pyspatialstats/*/*/*.c

@@ -1,3 +1,7 @@
+# cython: cdivision=True
+# cython: boundscheck=False
+# cython: wraparound=False
+
 import numpy as np
 from pyspatialstats.results.stats import MeanResult
 

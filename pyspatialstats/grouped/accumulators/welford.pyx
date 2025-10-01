@@ -8,7 +8,7 @@ from pyspatialstats.results.stats import IndexedGroupedStatResult
 from pyspatialstats.results.stats import MeanResult
 
 from libc.string cimport memcpy
-from numpy.math cimport isnan
+from libc.math cimport isnan
 from pyspatialstats.grouped.indices.max cimport _define_max_ind
 from pyspatialstats.grouped.accumulators.base cimport BaseGroupedStatAccumulator
 from pyspatialstats.stats.welford cimport WelfordState, ws_add, ws_std, ws_merge

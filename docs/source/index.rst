@@ -7,13 +7,13 @@
 Spatial statistics for python
 *****************************
 
-This module aims to provide focal statistics for python, that runs without the installation of extensive GIS packages. It is mainly based on numpy. For more details see the documentation.
+This module aims to provide spatial statistics for python, that runs without the installation of extensive GIS packages. For more details see the documentation.
 
 The package implements three different categories of spatial statistics:
 
-* focal statistics (:mod:`pyspatialstats.focal`), which are calculated as a moving window over input rasters (2D)
-* grouped statistics (:mod:`pyspatialstats.grouped`), which calculates the statistics based on group indices (xD)
-* zonal statistics (:mod:`pyspatialstats.zonal`), which calculates the statistics for each group index and reapplies it to the input raster (2D). This depends on the grouped statistics module.
+* :ref:`Focal statistics <statistics/focal_statistics>` (:mod:`pyspatialstats.focal`), which are calculated as a moving window over input rasters (2D).
+* :ref:`Grouped statistics <statistics/grouped_statistics>` (:mod:`pyspatialstats.grouped`), which calculates the statistics based on group indices (xD)
+* :ref:`Zonal statistics <statistics/zonal_statistics>` (:mod:`pyspatialstats.zonal`), which calculates the statistics for each group index and reapplies it to the index. This depends on the grouped statistics module.
 
 
 *************
@@ -28,9 +28,19 @@ Documentation
 
 .. toctree::
    :maxdepth: 2
+   :caption: Statistics
+
+   statistics/focal_statistics
+   statistics/grouped_statistics
+   statistics/zonal_statistics
+
+.. toctree::
+   :maxdepth: 2
    :caption: Methods
 
-   methods
+   methods/windows
+   methods/rolling_window
+   methods/parallel_processing
 
 .. toctree::
    :maxdepth: 2

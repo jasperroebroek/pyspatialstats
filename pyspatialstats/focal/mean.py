@@ -2,6 +2,7 @@ from functools import partial
 from typing import Literal, Optional
 
 from pyspatialstats.bootstrap.config import BootstrapConfig
+from pyspatialstats.enums import ErrorType
 from pyspatialstats.focal.core.mean import _focal_mean, _focal_mean_bootstrap, _focal_mean_std
 from pyspatialstats.focal._core import focal_stats, focal_stats_base
 from pyspatialstats.focal.result_config import FocalMeanResultConfig
@@ -20,12 +21,12 @@ def focal_mean(
     verbose: bool = False,  # noqa
     reduce: bool = False,
     chunks: Optional[int | tuple[int, int]] = None,
-    error: Optional[Literal['parametric', 'bootstrap']] = None,
+    error: Optional[ErrorType] = None,
     bootstrap_config: Optional[BootstrapConfig] = None,
     out: Optional[MeanResult] = None,
 ) -> MeanResult:
     """
-    Focal mean.
+    Focal mean
 
     Parameters
     ----------

@@ -56,5 +56,5 @@ test = [
 testpaths = ["tests"]
 
 [project.urls]
-repository = "https://github.com/jasperroebroek/focal-stats"
+repository = "https://github.com/jasperroebroek/pyspatialstats"
 documentation = "https://focal-stats.readthedocs.io/en/latest/index.html"

@@ -159,7 +159,7 @@ cdef inline void lrs_merge(LinearRegressionState* lrs_into, LinearRegressionStat
         lrs_into.Xty[i] += lrs_from.Xty[i]
 
 
-cdef void lrs_to_result(LinearRegressionState* lrs, LinearRegressionResult* result) noexcept nogil:
+cdef void lrs_to_result(LinearRegressionState* lrs, LinearRegressionResult* result, bint calc_se = True, bint calc_r2 = True) noexcept nogil:
     """
     Compute regression results from accumulated state.
 
@@ -169,9 +169,18 @@ cdef void lrs_to_result(LinearRegressionState* lrs, LinearRegressionResult* resu
         Source regression state
     result : RegressionResult*
         Destination result structure (must be pre-allocated)
+    calc_se : bint
+        Whether to calculate standard errors
+    calc_r2 : bint
+        Whether to calculate R-squared
     """
+    result.status = 0
+    result.calc_se = calc_se
+    result.calc_r2 = calc_r2
+
     if lrs.count <= lrs.nf:
         lrr_reset(result)
+        result.status = 1
         return
 
     cdef:
@@ -185,7 +194,7 @@ cdef void lrs_to_result(LinearRegressionState* lrs, LinearRegressionResult* resu
         double* Xty_copy = <double*> malloc(lrs.nf * sizeof(double))
 
         double y_mean, yhat_ss, rss, mse, tss
-        size_t i, j
+        size_t i
 
         int nf_int = lrs.nf
 
@@ -193,6 +202,7 @@ cdef void lrs_to_result(LinearRegressionState* lrs, LinearRegressionResult* resu
         free(XtX_copy)
         free(Xty_copy)
         lrr_reset(result)
+        result.status = 2
         return
 
     # Copy data since LAPACK routines modify input
@@ -203,33 +213,48 @@ cdef void lrs_to_result(LinearRegressionState* lrs, LinearRegressionResult* resu
 
     # Cholesky decomposition of X'X
     dpotrf(&UPLO_LOWER, &nf_int, XtX_copy, &nf_int, &info)
+    if info != 0:
+        lrr_reset(result)
+        result.status = 3
+        free(XtX_copy)
+        free(Xty_copy)
+        return
 
     # Solve for coefficients: beta = (X'X)^(-1) X'y
-    if info == 0:
-        dpotrs(&UPLO_LOWER, &nf_int, &NRHS_ONE, XtX_copy, &nf_int, Xty_copy, &nf_int, &info)
+    dpotrs(&UPLO_LOWER, &nf_int, &NRHS_ONE, XtX_copy, &nf_int, Xty_copy, &nf_int, &info)
+    if info != 0:
+        lrr_reset(result)
+        result.status = 4
+        free(XtX_copy)
+        free(Xty_copy)
+        return
 
-    if info == 0:
-        # Copy coefficients
-        memcpy(result.beta, Xty_copy, lrs.nf * sizeof(double))
-        # Compute covariance matrix for standard errors
-        dpotri(&UPLO_LOWER, &nf_int, XtX_copy, &nf_int, &info)
+    # Copy coefficients
+    memcpy(result.beta, Xty_copy, lrs.nf * sizeof(double))
 
-    # Calculate statistics
-    if info == 0:
+    if calc_se or calc_r2:
         yhat_ss = ddot(&nf_int, result.beta, &INC_ONE, lrs.Xty, &INC_ONE)
         rss = lrs.yty - yhat_ss
         mse = rss / result.df
+
+    if calc_se:
+        # Compute covariance matrix for standard errors
+        dpotri(&UPLO_LOWER, &nf_int, XtX_copy, &nf_int, &info)
+        if info != 0:
+            result.status = 5
+            free(XtX_copy)
+            free(Xty_copy)
+            return
 
         # Standard errors from diagonal of covariance matrix
         for i in range(lrs.nf):
             result.beta_se[i] = sqrt(XtX_copy[i * lrs.nf + i] * mse)
 
+    if calc_r2:
         # R-squared
         y_mean = lrs.y_sum / lrs.count
         tss = lrs.yty - lrs.count * y_mean * y_mean
         result.r_squared = 1.0 - rss / tss if tss > 0 else 0.0
-    else:
-        lrr_reset(result)
 
     free(XtX_copy)
     free(Xty_copy)
@@ -314,9 +339,20 @@ cdef void lrs_array_to_bootstrap_result(
     ws_init(&r2_ws)
 
     for i in range(n_boot):
-        lrs_to_result(&lrs_array[i], lrr_tmp)
-        if lrr_tmp.df <= 0:
+        lrs_to_result(&lrs_array[i], lrr_tmp, calc_se=False, calc_r2=True)
+
+        # Memory allocation failed
+        if lrr_tmp.status == 2:
+            lrr_reset(lrr)
+            lrr.status = lrr_tmp.status
+            free(lrr_tmp)
+            free(beta_ws)
+            return
+
+        # Model failed to converge or too few observations
+        if lrr_tmp.status > 0 and lrr_tmp.status != 2:
             continue
+
         lrr.df += lrr_tmp.df
         ws_add(&r2_ws, lrr_tmp.r_squared)
         for j in range(lrr.nf):
@@ -329,7 +365,7 @@ cdef void lrs_array_to_bootstrap_result(
     lrr.r_squared_se = ws_std(&r2_ws)
 
     if r2_ws.count == 0:
-        lrr.df = 0
+        lrr.df = -1
     else:
         lrr.df /= r2_ws.count
 
@@ -338,7 +374,7 @@ cdef void lrs_array_to_bootstrap_result(
 
 
 # =============================================================================
-# RegressionResult Functions
+# CyRegressionResult Functions
 # =============================================================================
 
 cdef inline LinearRegressionResult* lrr_new(size_t nf) noexcept nogil:
@@ -359,7 +395,7 @@ cdef inline LinearRegressionResult* lrr_new(size_t nf) noexcept nogil:
 
 cdef inline int lrr_init(LinearRegressionResult* lrr, size_t nf) noexcept nogil:
     """
-    Initialize or re-initialize a RegressionResult with nf features.
+    Initialize or re-initialize a LinearRegressionResult with nf features.
     Safe to call multiple times; frees any previously allocated memory.
     Returns 0 on success, -1 on failure.
     """
@@ -374,6 +410,7 @@ cdef inline int lrr_init(LinearRegressionResult* lrr, size_t nf) noexcept nogil:
         free(lrr.beta_se)
         lrr.beta_se = NULL
 
+    lrr.status = 0
     lrr.nf = nf
     lrr.beta = <double*> malloc(nf * sizeof(double))
     lrr.beta_se = <double*> malloc(nf * sizeof(double))
@@ -393,7 +430,7 @@ cdef inline int lrr_init(LinearRegressionResult* lrr, size_t nf) noexcept nogil:
 
 cdef inline void lrr_free(LinearRegressionResult* lrr) noexcept nogil:
     """
-    Free a RegressionResult, safe to call multiple times.
+    Free a LinearRegressionResult, safe to call multiple times.
     """
     if lrr == NULL:
         return
@@ -408,14 +445,17 @@ cdef inline void lrr_free(LinearRegressionResult* lrr) noexcept nogil:
 
 cdef inline void lrr_reset(LinearRegressionResult* lrr) noexcept nogil:
     """
-    Reset RegressionResult to initial state (NaN/zero values). nf is required to be set before calling this 
+    Reset LinearRegressionResult to initial state (NaN/zero values). nf is required to be set before calling this 
     function and must match the size of the arrays.
 
     Parameters:
     -----------
-    lrr : RegressionResult*
+    lrr : LinearRegressionResult*
         Pointer to result to reset
     """
+    lrr.calc_se = False
+    lrr.calc_r2 = False
+    lrr.status = 0
     lrr.df = 0
     lrr.r_squared = NAN
     lrr.r_squared_se = NAN
@@ -425,7 +465,7 @@ cdef inline void lrr_reset(LinearRegressionResult* lrr) noexcept nogil:
 
 cdef inline LinearRegressionResult* lrr_array_new(size_t count, size_t nf) noexcept nogil:
     """
-    Allocate and initialize an array of RegressionResult structures.
+    Allocate and initialize an array of LinearRegressionResult structures.
     Returns NULL on failure.
     """
     if count == 0:
@@ -449,7 +489,7 @@ cdef inline LinearRegressionResult* lrr_array_new(size_t count, size_t nf) noexc
 
 cdef inline void lrr_array_free(LinearRegressionResult* lrr_array, size_t count) noexcept nogil:
     """
-    Free an array of RegressionResult structures.
+    Free an array of LinearRegressionResult structures.
     Safe to call on partially initialized arrays or NULL pointer.
     """
     if lrr_array == NULL:
@@ -465,7 +505,7 @@ cdef inline void lrr_array_free(LinearRegressionResult* lrr_array, size_t count)
 # Extension types (for testing purposes)
 # =============================================================================
 
-cdef class LinearRegression:
+cdef class CyLinearRegression:
     """
     Fast linear regression accumulator using Cython and LAPACK.
 
@@ -486,7 +526,6 @@ cdef class LinearRegression:
     count : int
         Number of observations added
     """
-
     cdef LinearRegressionState* _state
     cdef readonly int n_features
     cdef readonly int n_params
@@ -569,13 +608,13 @@ cdef class LinearRegression:
                 x_row = X_view[i, :]
                 lrs_add(self._state, y_view[i], x_row)
 
-    def merge(self, LinearRegression other):
+    def merge(self, CyLinearRegression other):
         """
-        Merge another LinearRegression accumulator into this one.
+        Merge another CyLinearRegression accumulator into this one.
 
         Parameters
         ----------
-        other : LinearRegression
+        other : CyLinearRegression
             Another regression accumulator with same n_features
         """
         if self._state == NULL or other._state == NULL:
@@ -586,13 +625,13 @@ cdef class LinearRegression:
 
         lrs_merge(self._state, other._state)
 
-    def compute(self):
+    def compute(self, calc_se: bool = True, calc_r2: bool = True):
         """
         Compute regression results from accumulated observations.
 
         Returns
         -------
-        RegressionResult
+        CyRegressionResult
             Object containing coefficients, standard errors, R-squared, etc.
         """
         if self._state == NULL:
@@ -600,23 +639,23 @@ cdef class LinearRegression:
 
         cdef LinearRegressionResult* result = lrr_new(self.n_params)
         if result == NULL:
-            raise MemoryError("Failed to allocate RegressionResult")
+            raise MemoryError("Failed to allocate CyRegressionResult")
 
         try:
-            lrs_to_result(self._state, result)
-            return RegressionResult._from_c_struct(result, self.n_params)
+            lrs_to_result(self._state, result, calc_se, calc_r2)
+            return CyRegressionResult._from_c_struct(result, self.n_params)
         finally:
             lrr_free(result)
 
     def copy(self):
-        """Create a deep copy of this LinearRegression accumulator."""
-        cdef LinearRegression new_lr = LinearRegression(self.n_features)
+        """Create a deep copy of this CyLinearRegression class."""
+        cdef CyLinearRegression new_lr = CyLinearRegression(self.n_features)
         if self._state != NULL and new_lr._state != NULL:
             lrs_merge(new_lr._state, self._state)
         return new_lr
 
 
-cdef class RegressionResult:
+cdef class CyRegressionResult:
     """
     Results from a linear regression computation.
 
@@ -631,39 +670,42 @@ cdef class RegressionResult:
     df : int
         Degrees of freedom for residuals
     """
-
-    cdef readonly cnp.ndarray beta
-    cdef readonly cnp.ndarray beta_se
-    cdef readonly double r_squared
-    cdef readonly int df
-    cdef readonly int n_params
-
     def __cinit__(self):
         pass
 
     @staticmethod
-    cdef RegressionResult _from_c_struct(LinearRegressionResult* result, int n_params):
-        """Create RegressionResult from C struct (internal use only)."""
-        cdef RegressionResult py_result = RegressionResult()
+    cdef CyRegressionResult _from_c_struct(LinearRegressionResult* result, int nf):
+        """Create CyRegressionResult from C struct (internal use only)."""
+        cdef CyRegressionResult py_result = CyRegressionResult()
 
-        py_result.n_params = n_params
+        py_result.status = result.status
+        py_result.calc_se = result.calc_se
+        py_result.calc_r2 = result.calc_r2
+
+        py_result.nf = nf
         py_result.r_squared = result.r_squared
+        py_result.r_squared_se = result.r_squared_se
         py_result.df = int(result.df)
 
         # Copy coefficient arrays
-        py_result.beta = np.empty(n_params, dtype=np.float64)
-        py_result.beta_se = np.empty(n_params, dtype=np.float64)
+        py_result.beta = np.empty(nf, dtype=np.float64)
+        py_result.beta_se = np.empty(nf, dtype=np.float64)
 
         cdef:
             double[:] beta_view = py_result.beta
             double[:] beta_se_view = py_result.beta_se
             int i
 
-        for i in range(n_params):
+        for i in range(nf):
             beta_view[i] = result.beta[i]
             beta_se_view[i] = result.beta_se[i]
 
         return py_result
+
+    @property
+    def ok(self):
+        """Whether the regression computation was successful."""
+        return self.status == 0
 
     @property
     def intercept(self):
@@ -690,6 +732,9 @@ cdef class RegressionResult:
         lines = [
             f"Linear Regression Results",
             f"=" * 40,
+            f"Status: {self.status} -> {self.status == 0}",
+            f"Calculation of standard errors: {self.calc_se}",
+            f"Calculation of R-squared: {self.calc_r2}",
             f"R-squared: {self.r_squared:.6f}",
             f"Degrees of freedom: {self.df}",
             f"",
