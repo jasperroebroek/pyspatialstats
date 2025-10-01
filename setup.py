@@ -5,18 +5,23 @@ from Cython.Build import cythonize
 from setuptools import find_packages, setup
 from setuptools.extension import Extension
 
-lib_path = os.path.join(np.get_include(), '..', '..', 'random', 'lib')
+# Get paths from installed NumPy
+numpy_path = os.path.dirname(np.__file__)
+npyrandom_path = os.path.join(numpy_path, 'random', 'lib')
+npymath_path = os.path.join(numpy_path, '_core', 'lib')
+npy_include = os.path.join(numpy_path, '_core', 'include')
 
 
 misc_extensions = [
     Extension(
         'pyspatialstats.random.random',
         ['pyspatialstats/random/random.pyx'],
-        include_dirs=[np.get_include()],
-        library_dirs=[lib_path],
-        libraries=['npyrandom'],
+        include_dirs=[npy_include],
+        library_dirs=[npyrandom_path, npymath_path],
+        libraries=['npyrandom', 'npymath']
     ),
 ]
+
 
 bootstrap_extensions = [
     Extension(
@@ -120,4 +125,5 @@ setup(
         misc_extensions + bootstrap_extensions + stat_extensions + grouped_stat_extensions + focal_stat_extensions
     ),
     include_dirs=[np.get_include()],
+    language_level=3,
 )
