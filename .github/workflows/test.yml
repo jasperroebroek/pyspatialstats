@@ -40,6 +40,9 @@ jobs:
           print('Random lib contents:', glob.glob(os.path.join(random_lib, '*')))
           print('Core lib exists:', os.path.exists(core_lib))
           print('Core lib contents:', glob.glob(os.path.join(core_lib, '*')))
+          
+          from pyspatialstats.random.random import Random
+          print(Random().np_randpoisson(1, 10))
           "
 
       - name: Run tests
