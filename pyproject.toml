@@ -55,6 +55,10 @@ test = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pyspatialstats*"]
+
 [project.urls]
 repository = "https://github.com/jasperroebroek/pyspatialstats"
 documentation = "https://focal-stats.readthedocs.io/en/latest/index.html"
