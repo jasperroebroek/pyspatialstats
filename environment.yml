@@ -4,6 +4,7 @@ channels:
   - conda-forge
 dependencies:
   - cython
+  - numpy>2.0
   - pytest
   - scipy
   - joblib
