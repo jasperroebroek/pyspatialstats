@@ -10,6 +10,7 @@ dist
 docs/build
 data/
 .ruff_cache
+test_*
 
 *.c
 *.so
