@@ -49,5 +49,5 @@ jobs:
         shell: bash -l {0}
         run: |
           micromamba activate pyspatialstats-tests-env
-          python -m pytest tests/grouped
+          python -m pytest tests/grouped_stats
           
