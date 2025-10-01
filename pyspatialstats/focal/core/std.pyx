@@ -5,11 +5,10 @@
 import numpy as np
 cimport numpy as np
 from libc.math cimport isnan, sqrt
-from pyspatialstats.types.cy_types cimport numeric
 
 
 cpdef void _focal_std(
-    numeric[:, :, :, :] a,
+    double[:, :, :, :] a,
     np.npy_uint8[:, ::1] mask,
     double[:, :] r,
     int dof,
@@ -19,7 +18,7 @@ cpdef void _focal_std(
 ):
     cdef:
         size_t i, j, p, q, count_values
-        numeric[:, :] window
+        double[:, :] window
         double a_sum, a_mean, x_sum
 
     with nogil:

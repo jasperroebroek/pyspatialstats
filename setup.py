@@ -8,10 +8,6 @@ from setuptools.extension import Extension
 
 misc_extensions = [
     Extension(
-        'pyspatialstats.types.cy_types',
-        ['pyspatialstats/types/cy_types.pyx'],
-    ),
-    Extension(
         'pyspatialstats.random.random',
         ['pyspatialstats/random/random.pyx'],
     ),

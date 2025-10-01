@@ -9,11 +9,10 @@ from libc.stdlib cimport malloc, free
 from pyspatialstats.stats.welford cimport WelfordState, ws_mean, ws_std, ws_add, ws_reset
 from pyspatialstats.bootstrap.mean cimport bootstrap_mean
 from pyspatialstats.random.random cimport Random
-from pyspatialstats.types.cy_types cimport numeric
 
 
 cpdef void _focal_mean(
-    numeric[:, :, :, :] a,
+    double[:, :, :, :] a,
     np.npy_uint8[:, ::1] mask,
     double[:, :] mean,
     int[:] fringe,
@@ -22,7 +21,7 @@ cpdef void _focal_mean(
 ):
     cdef:
         size_t i, j, p, q, count_values
-        numeric[:, :] window
+        double[:, :] window
         double a_sum
 
     with nogil:
@@ -49,7 +48,7 @@ cpdef void _focal_mean(
 
 
 cpdef void _focal_mean_std(
-    numeric[:, :, :, :] a,
+    double[:, :, :, :] a,
     np.npy_uint8[:, ::1] mask,
     double[:, :] mean,
     double[: ,:] std,
@@ -59,7 +58,7 @@ cpdef void _focal_mean_std(
 ):
     cdef:
         size_t i, j, p, q, count_values
-        numeric[:, :] window
+        double[:, :] window
         WelfordState ws
 
     with nogil:
@@ -85,7 +84,7 @@ cpdef void _focal_mean_std(
 
 
 cpdef void _focal_mean_bootstrap(
-    numeric[:, :, :, :] a,
+    double[:, :, :, :] a,
     np.npy_uint8[:, ::1] mask,
     double[:, :] mean,
     double[:, :] se,
@@ -97,7 +96,7 @@ cpdef void _focal_mean_bootstrap(
 ):
     cdef:
         size_t i, j, p, q, count_values
-        numeric[:, :] window
+        double[:, :] window
         double a_sum
         double* window_values
         WelfordState result

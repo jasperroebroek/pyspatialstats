@@ -7,11 +7,10 @@ import numpy as np
 cimport numpy as np
 from libc.math cimport isnan, NAN
 from libc.stdlib cimport malloc, free
-from pyspatialstats.types.cy_types cimport numeric
 
 
 cpdef void _focal_majority(
-    numeric[:, :, :, :] a,
+    double[:, :, :, :] a,
     np.npy_uint8[:, ::1] mask,
     double[:, :] r,
     int[:] fringe,
@@ -21,15 +20,15 @@ cpdef void _focal_majority(
 ):
     cdef:
         size_t i, j, p, q, c, v, count_values, curr_max_count, num_values
-        numeric[:, :] window
+        double[:, :] window
         double curr_value
         bint in_store, is_double
         size_t[:] counts
-        numeric* values
+        double* values
 
     num_values = mask.shape[0] * mask.shape[1]
 
-    values = <numeric*> malloc(num_values * sizeof(numeric))
+    values = <double*> malloc(num_values * sizeof(double))
     if values == NULL:
         raise MemoryError
 

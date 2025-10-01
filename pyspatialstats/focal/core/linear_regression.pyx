@@ -2,7 +2,7 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 
-from libc.stdlib cimport free, malloc
+from libc.stdlib cimport free
 import numpy as np
 cimport numpy as np
 from libc.math cimport isnan
@@ -11,7 +11,7 @@ from pyspatialstats.random.random cimport Random
 from pyspatialstats.stats.linear_regression cimport (
     LinearRegressionState, LinearRegressionResult, lrs_reset, lrs_add, lrs_to_result, lrs_new, lrr_new
 )
-from pyspatialstats.stats.welford cimport WelfordState, ws_array_new, ws_add, ws_merge, ws_new
+from pyspatialstats.stats.welford cimport WelfordState, ws_array_new, ws_new
 
 
 cpdef void _focal_linear_regression_simple(

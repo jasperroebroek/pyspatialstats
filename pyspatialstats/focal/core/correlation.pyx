@@ -4,12 +4,11 @@
 
 cimport numpy as np
 from libc.math cimport isnan, sqrt
-from pyspatialstats.types.cy_types cimport numeric_v1, numeric_v2
 
 
 cpdef void _focal_correlation(
-    numeric_v1[:, :, :, :] a1,
-    numeric_v2[:, :, :, :] a2,
+    double[:, :, :, :] a1,
+    double[:, :, :, :] a2,
     np.npy_uint8[:, ::1] mask,
     # return rasters
     size_t[:, :] df,
@@ -22,8 +21,7 @@ cpdef void _focal_correlation(
     cdef:
         size_t i, j, p, q, count
         double r_num, d1_mean, d2_mean, d1_sum, d2_sum, c1_dist, c2_dist, r_den_d1, r_den_d2
-        numeric_v1[:, :] a1_window
-        numeric_v2[:, :] a2_window
+        double[:, :] a1_window, a2_window
 
     threshold = threshold if threshold > 2 else 2
 

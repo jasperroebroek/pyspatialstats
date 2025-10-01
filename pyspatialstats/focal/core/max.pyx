@@ -4,11 +4,10 @@
 
 cimport numpy as np
 from libc.math cimport isnan
-from pyspatialstats.types.cy_types cimport numeric
 
 
 cpdef void _focal_max(
-    numeric[:, :, :, :] a,
+    double[:, :, :, :] a,
     np.npy_uint8[:, ::1] mask,
     double[:, :] r,
     int[:] fringe,
@@ -17,7 +16,7 @@ cpdef void _focal_max(
 ):
     cdef:
         size_t i, j, p, q, count_values
-        numeric[:, :] window
+        double[:, :] window
         double curr_max
 
     with nogil:

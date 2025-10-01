@@ -15,8 +15,7 @@ description = ""
 authors = [
     { name = "Jasper Roebroek", email = "roebroek.jasper@gmail.com" }
 ]
-license = "MIT"
-license-files = ["LICENSE"]
+license = { file = "LICENSE" }
 readme = "README.md"
 
 dependencies = [
