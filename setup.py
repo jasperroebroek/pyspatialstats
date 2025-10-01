@@ -119,6 +119,4 @@ setup(
         misc_extensions + bootstrap_extensions + stat_extensions + grouped_stat_extensions + focal_stat_extensions
     ),
     include_dirs=[numpy.get_include()],
-    libraries=['npyrandom'],
-    library_dirs=[os.path.join(np.get_include(), '..', '..', 'random', 'lib')],
 )
