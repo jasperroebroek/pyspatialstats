@@ -182,7 +182,7 @@ def construct_windowed_tile_views(
     return pairs
 
 
-def construct_tile_views(data_shape: tuple[int, ...], tile_shape: tuple[int, ...]) -> Generator[ArrayView]:
+def construct_tile_views(data_shape: tuple[int, ...], tile_shape: tuple[int, ...]) -> Generator[ArrayView, None, None]:
     if len(data_shape) != len(tile_shape):
         raise ValueError('Data shape is not compatible with tile shape')
 

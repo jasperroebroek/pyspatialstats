@@ -19,7 +19,7 @@ license = { file = "LICENSE" }
 readme = "README.md"
 
 dependencies = [
-    "numpy>=2.2.1",
+    "numpy>=2.0",
     "joblib",
     "pandas",
     "scipy"
@@ -49,7 +49,9 @@ develop = [
 ]
 test = [
     "pytest",
-    "statsmodels"
+    "statsmodels",
+    "scikit-learn"
+    "xarray"
 ]
 
 [tool.pytest.ini_options]
