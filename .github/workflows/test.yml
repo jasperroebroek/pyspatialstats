@@ -23,6 +23,25 @@ jobs:
           micromamba activate pyspatialstats-tests-env
           python -m pip install -e .
 
+      - name: Debug NumPy installation
+        shell: bash -l {0}
+        run: |
+          micromamba activate pyspatialstats-tests-env
+          python -c "
+          import numpy as np
+          import os
+          import glob
+          numpy_path = os.path.dirname(np.__file__)
+          print('NumPy location:', numpy_path)
+          print('NumPy version:', np.__version__)
+          random_lib = os.path.join(numpy_path, 'random', 'lib')
+          core_lib = os.path.join(numpy_path, '_core', 'lib')
+          print('Random lib exists:', os.path.exists(random_lib))
+          print('Random lib contents:', glob.glob(os.path.join(random_lib, '*')))
+          print('Core lib exists:', os.path.exists(core_lib))
+          print('Core lib contents:', glob.glob(os.path.join(core_lib, '*')))
+          "
+
       - name: Run tests
         shell: bash -l {0}
         run: |
