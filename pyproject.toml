@@ -50,7 +50,7 @@ develop = [
 test = [
     "pytest",
     "statsmodels",
-    "scikit-learn"
+    "scikit-learn",
     "xarray"
 ]
 
