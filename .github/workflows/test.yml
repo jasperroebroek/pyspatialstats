@@ -64,7 +64,24 @@ jobs:
           assert -10 < result.mean < 10
           assert 0 < result.se < 10
           
+          print('test 3')
+
+          from pyspatialstats.bootstrap.linear_regression import py_bootstrap_linear_regression
+          from tests.bootstrap.np_stats import np_bootstrap_linear_regression
           
+          rs = np.random.default_rng(42)
+          n = 50
+          n_params = 3
+          x = rs.random((n, n_params))
+          y = x @ np.array([1.5, -2.0, 0.5]) + rs.random(n) * 0.1
+      
+          result = py_bootstrap_linear_regression(x, y, 1000, seed=13)
+      
+          assert isinstance(result.r_squared, float)
+          assert isinstance(result.r_squared_se, float)
+          assert result.beta.shape == (n_params + 1,)
+          assert result.beta_se.shape == (n_params + 1,)
+          assert result.status == 0
           "
 
       - name: Run tests
