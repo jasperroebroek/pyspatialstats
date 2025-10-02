@@ -41,11 +41,11 @@ jobs:
           print('Core lib exists:', os.path.exists(core_lib))
           print('Core lib contents:', glob.glob(os.path.join(core_lib, '*')))
           
-          print("test 1")
+          print('test 1')
           from pyspatialstats.random.random import Random
           print(Random().np_randpoisson(1, 10))
           
-          print("test 2")
+          print('test 2')
           import pyspatialstats
           
           import numpy as np
