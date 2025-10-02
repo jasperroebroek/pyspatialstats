@@ -1,14 +1,22 @@
+import os
+
 import numpy as np
 from Cython.Build import cythonize
 from setuptools import find_packages, setup
 from setuptools.extension import Extension
 
+numpy_path = os.path.dirname(np.__file__)
+npyrandom_path = os.path.join(numpy_path, 'random', 'lib')
+npy_include = os.path.join(numpy_path, '_core', 'include')
+
+
 misc_extensions = [
     Extension(
         'pyspatialstats.random.random',
         ['pyspatialstats/random/random.pyx'],
-        include_dirs=[np.get_include()],
-        define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],
+        include_dirs=[npy_include],
+        library_dirs=[npyrandom_path],
+        libraries=['npyrandom'],
     ),
 ]
 
@@ -112,8 +120,6 @@ grouped_stat_extensions = [
 extensions = misc_extensions + bootstrap_extensions + stat_extensions + grouped_stat_extensions + focal_stat_extensions
 
 for ext in extensions:
-    ext.include_dirs = ext.include_dirs or []
-    ext.include_dirs.append(np.get_include())
     ext.define_macros = ext.define_macros or []
     ext.define_macros.append(('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION'))
 
