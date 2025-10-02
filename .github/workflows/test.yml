@@ -41,10 +41,30 @@ jobs:
           print('Core lib exists:', os.path.exists(core_lib))
           print('Core lib contents:', glob.glob(os.path.join(core_lib, '*')))
           
+          print("test 1")
           from pyspatialstats.random.random import Random
           print(Random().np_randpoisson(1, 10))
           
+          print("test 2")
           import pyspatialstats
+          
+          import numpy as np
+          
+          from pyspatialstats.bootstrap.mean import py_bootstrap_mean
+          from tests.bootstrap.np_stats import np_bootstrap_mean
+          
+          n_bootstraps = 1000
+          data = np.random.randn(10).astype(np.float64)
+
+          result = py_bootstrap_mean(data, n_bootstraps, seed=42)
+
+          assert isinstance(result.mean, float)
+          assert isinstance(result.se, float)
+
+          assert -10 < result.mean < 10
+          assert 0 < result.se < 10
+          
+          
           "
 
       - name: Run tests
