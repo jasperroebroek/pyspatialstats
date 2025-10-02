@@ -12,6 +12,5 @@ data/
 .ruff_cache
 test*.py
 
-
 *.c
 *.so
