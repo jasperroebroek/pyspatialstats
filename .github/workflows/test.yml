@@ -22,6 +22,7 @@ jobs:
         run: |
           micromamba activate pyspatialstats-tests-env
           python -m pip install -e .
+          python -m pytest tests
 
       - name: Debug NumPy installation
         shell: bash -l {0}
@@ -52,5 +53,4 @@ jobs:
         run: |
           micromamba activate pyspatialstats-tests-env
           python -c "import numpy, sys; print(numpy.__version__, numpy.__file__)"
-          python -m pytest -q --faulthandler-timeout=10
-          
+          python -m pytest tests

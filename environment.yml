@@ -1,4 +1,4 @@
-name: pyspatialstats
+name: pyspatialstats-tests-env
 channels:
   - conda-forge
   - defaults
