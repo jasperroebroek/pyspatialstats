@@ -1,10 +1,9 @@
-name: pyspatialstats-tests-env
 channels:
   - conda-forge
   - defaults
 dependencies:
   - cython
-  - numpy>=2.2.1
+  - numpy==2.3.3
   - pytest
   - scipy
   - joblib
