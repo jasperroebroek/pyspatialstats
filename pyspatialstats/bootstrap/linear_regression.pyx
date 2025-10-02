@@ -92,11 +92,11 @@ def py_bootstrap_linear_regression(
         size_t n_samples = x.shape[0]
         size_t nf = x.shape[1] + 1
         Random rng = Random(seed)
-        LinearRegressionState* lrs_tmp
-        LinearRegressionResult* lrr_tmp
-        LinearRegressionResult* lrr
-        WelfordState* ws_r2
-        WelfordState* ws_beta
+        LinearRegressionState* lrs_tmp = NULL
+        LinearRegressionResult* lrr_tmp = NULL
+        LinearRegressionResult* lrr = NULL
+        WelfordState* ws_r2 = NULL
+        WelfordState* ws_beta = NULL
 
     print(f"{nf=}")
 
@@ -122,9 +122,6 @@ def py_bootstrap_linear_regression(
         lrr_tmp = lrr_new(nf)
         ws_r2 = ws_new()
         ws_beta = ws_array_new(nf)
-
-        for q in range(nf):
-            print(ws_beta[q].count)
 
         if lrs_tmp == NULL or lrr_tmp == NULL or ws_r2 == NULL or ws_beta == NULL:
             raise MemoryError()
