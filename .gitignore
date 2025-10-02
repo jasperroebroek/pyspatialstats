@@ -10,7 +10,8 @@ dist
 docs/build
 data/
 .ruff_cache
-test_*
+test*.py
+
 
 *.c
 *.so
