@@ -45,13 +45,12 @@ jobs:
           print(Random().np_randpoisson(1, 10))
           
           import pyspatialstats
-          print(pyspatialstats.__version__)
           "
 
       - name: Run tests
         shell: bash -l {0}
         run: |
           micromamba activate pyspatialstats-tests-env
-          python -c "import numpy; print(numpy.__version__)"
-          python -m pytest tests/grouped_stats
+          python -c "import numpy, sys; print(numpy.__version__, numpy.__file__)"
+          python -m pytest -q --faulthandler-timeout=10
           

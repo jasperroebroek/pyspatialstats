@@ -1,7 +1,7 @@
 name: pyspatialstats
 channels:
-  - defaults
   - conda-forge
+  - defaults
 dependencies:
   - cython
   - numpy>=2.2.1

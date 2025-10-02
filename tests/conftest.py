@@ -1,5 +1,9 @@
+import sys
+
 import numpy as np
 import pytest
+
+print('>>> pytest using NumPy', np.__version__, 'from', np.__file__, file=sys.stderr)
 
 
 @pytest.fixture
