@@ -102,7 +102,7 @@ def test_xarray_output(rs, reduce, chunks):
 
     output = CorrelationResult(
         c=xr.DataArray(np.full(output_shape, fill_value=np.nan, dtype=np.float64)),
-        df=xr.DataArray(np.full(output_shape, fill_value=np.nan, dtype=np.uintp)),
+        df=xr.DataArray(np.full(output_shape, fill_value=0, dtype=np.uintp)),
         p=xr.DataArray(np.full(output_shape, fill_value=np.nan, dtype=np.float64)),
     )
 

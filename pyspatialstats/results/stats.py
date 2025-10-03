@@ -34,6 +34,9 @@ class CorrelationResult(StatResult):
 
 @dataclass
 class RegressionResult(StatResult):
+    """df is used to represent error values, in which case they are negative numbers. The results are not valid in this
+    case."""
+
     df: SizeTResult
     beta: FloatResult
     beta_se: Optional[FloatResult] = None
