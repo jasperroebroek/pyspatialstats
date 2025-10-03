@@ -304,7 +304,7 @@ cdef inline int lrs_array_init(LinearRegressionState* lrs_array, size_t count, s
 cdef inline void lrs_array_free(LinearRegressionState* lrs_array, size_t count) noexcept nogil:
     """
     Free an array of LinearRegressionState structs.
-    Safe to call on partially initialized arrays or NULL pointer.
+    Safe to call on NULL pointer.
     """
     if lrs_array == NULL:
         return
@@ -395,20 +395,11 @@ cdef inline LinearRegressionResult* lrr_new(size_t nf) noexcept nogil:
 
 cdef inline int lrr_init(LinearRegressionResult* lrr, size_t nf) noexcept nogil:
     """
-    Initialize or re-initialize a LinearRegressionResult with nf features.
-    Safe to call multiple times; frees any previously allocated memory.
+    Initialize a LinearRegressionResult with nf features.
     Returns 0 on success, -1 on failure.
     """
     if lrr == NULL:
         return -1
-
-    # Free previous allocations if any
-    if lrr.beta != NULL:
-        free(lrr.beta)
-        lrr.beta = NULL
-    if lrr.beta_se != NULL:
-        free(lrr.beta_se)
-        lrr.beta_se = NULL
 
     lrr.status = 0
     lrr.nf = nf
@@ -430,7 +421,7 @@ cdef inline int lrr_init(LinearRegressionResult* lrr, size_t nf) noexcept nogil:
 
 cdef inline void lrr_free(LinearRegressionResult* lrr) noexcept nogil:
     """
-    Free a LinearRegressionResult, safe to call multiple times.
+    Free a LinearRegressionResult
     """
     if lrr == NULL:
         return

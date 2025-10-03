@@ -3,7 +3,7 @@ channels:
   - defaults
 dependencies:
   - cython
-  - numpy==2.2.1
+  - numpy>=2.2.1
   - pytest
   - scipy
   - joblib
