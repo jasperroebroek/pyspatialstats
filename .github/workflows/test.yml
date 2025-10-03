@@ -21,49 +21,7 @@ jobs:
         shell: bash -l {0}
         run: |
           micromamba activate pyspatialstats-tests-env
-          python -m pip install -e .
-
-      - name: Debug with GDB
-        shell: bash -l {0}
-        run: |
-          micromamba activate pyspatialstats-tests-env
-          sudo apt-get update && sudo apt-get install -y gdb
-          gdb -batch -ex "run" -ex "bt" -ex "quit" --args python -c "
-          from pyspatialstats.bootstrap.linear_regression import py_bootstrap_linear_regression
-          import numpy as np
-          rs = np.random.default_rng(42)
-          n = 50
-          n_params = 3
-          x = rs.random((n, n_params))
-          y = x @ np.array([1.5, -2.0, 0.5]) + rs.random(n) * 0.1
-          result = py_bootstrap_linear_regression(x, y, 1000, seed=13)
-          "
-
-      - name: Debug NumPy installation
-        shell: bash -l {0}
-        run: |
-          micromamba activate pyspatialstats-tests-env
-          python -c "
-          import numpy as np
-          import os
-          import glob
-          numpy_path = os.path.dirname(np.__file__)
-          print('NumPy location:', numpy_path)
-          print('NumPy version:', np.__version__)
-          random_lib = os.path.join(numpy_path, 'random', 'lib')
-          core_lib = os.path.join(numpy_path, '_core', 'lib')
-          print('Random lib exists:', os.path.exists(random_lib))
-          print('Random lib contents:', glob.glob(os.path.join(random_lib, '*')))
-          print('Core lib exists:', os.path.exists(core_lib))
-          print('Core lib contents:', glob.glob(os.path.join(core_lib, '*')))
-          
-          print('test 1')
-          from pyspatialstats.random.random import Random
-          print(Random().np_randpoisson(1, 10))
-          
-          print('test 2')
-          import pyspatialstats
-          "
+          python -m pip install -e .    
 
       - name: Run tests
         shell: bash -l {0}
