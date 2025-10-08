@@ -34,7 +34,7 @@ class FocalDataClassResultConfig(FocalResultConfig, ABC):
 
         return self.return_type(
             **{
-                field: getattr(out, field)[*tile_view.output.get_external_slices(window, reduce)]
+                field: getattr(out, field)[tuple(tile_view.output.get_external_slices(window, reduce))]
                 for field in self.active_fields
             }
         )

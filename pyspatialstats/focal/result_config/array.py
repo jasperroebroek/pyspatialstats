@@ -31,7 +31,7 @@ class FocalArrayResultConfig(FocalResultConfig):
     def create_tile_output(self, out: Array, tile_view: ArrayViewPair, window: Window, reduce: bool) -> Optional[Array]:
         if not isinstance(out, Array):
             raise TypeError(f'Expected Array but got {type(out).__name__}')
-        return out[*tile_view.output.get_external_slices(window, reduce)]
+        return out[tuple(tile_view.output.get_external_slices(window, reduce))]
 
     def validate_output(self, raster_shape: RasterShape, window: Window, reduce: bool, out: Array) -> None:
         if not isinstance(out, self.return_type):

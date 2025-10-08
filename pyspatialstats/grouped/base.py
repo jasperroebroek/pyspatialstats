@@ -25,7 +25,7 @@ def grouped_stats_parallel_tile(
     **kwargs,
 ) -> BaseGroupedStatAccumulator:
     return grouped_stats_base(
-        ind=ind[*tile_view.slices], config=config, **{k: v[*tile_view.slices] for k, v in kwargs.items()}
+        ind=ind[tuple(tile_view.slices)], config=config, **{k: v[tuple(tile_view.slices)] for k, v in kwargs.items()}
     )
 
 
