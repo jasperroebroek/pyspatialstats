@@ -75,7 +75,7 @@ def focal_stats_parallel_tile(
     tile_view: ArrayViewPair,
 ) -> None:
     tile_out = result_config.create_tile_output(out, tile_view, window, reduce)
-    tile_data = {name: arg[*tile_view.input.slices] for name, arg in data.items()}
+    tile_data = {name: arg[tuple(tile_view.input.slices)] for name, arg in data.items()}
 
     func(
         data=tile_data,

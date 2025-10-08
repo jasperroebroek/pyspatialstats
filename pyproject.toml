@@ -63,4 +63,4 @@ include = ["pyspatialstats*"]
 
 [project.urls]
 repository = "https://github.com/jasperroebroek/pyspatialstats"
-documentation = "https://focal-stats.readthedocs.io/en/latest/index.html"
+documentation = "https://pyspatialstats.readthedocs.io/en/latest/index.html"

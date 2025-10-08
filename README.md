@@ -1,4 +1,4 @@
-[![Documentation Status](https://readthedocs.org/projects/focal-stats/badge/?version=latest)](https://focal-stats.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/pyspatialstats/badge/?version=latest)](https://pyspatialstats.readthedocs.io/en/latest/?badge=latest)
 
 This module provides spatial statistics for python, that runs without the installation of extensive GIS packages.
 
@@ -23,7 +23,7 @@ conda install --channel conda-forge pyspatialstats
 Focal mean of a 100x100 random numpy array.
 
 ```
-from pyspatialstats.focal_base import focal_mean
+from pyspatialstats.focal import focal_mean
 import numpy as np
 
 x = np.random.rand(100, 100)
@@ -32,5 +32,5 @@ fm = focal_mean(x, window=5)
 
 # Important links
 
-- API reference: https://focal-stats.readthedocs.io/en/latest/api.html
-- Documentation: https://focal-stats.readthedocs.io/en/latest/index.html
+- API reference: https://pyspatialstats.readthedocs.io/en/latest/api.html
+- Documentation: https://pyspatialstats.readthedocs.io/en/latest/index.html
