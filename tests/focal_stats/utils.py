@@ -55,7 +55,7 @@ def focal_linear_regression_simple(x, y, window=5, reduce=False):
 
     for i in range(y_windowed.shape[0]):
         for j in range(y_windowed.shape[1]):
-            if np.isnan(y_windowed[i, j, *idx_center]) and not reduce:
+            if np.isnan(y_windowed[i, j, idx_center[0], idx_center[1]]) and not reduce:
                 continue
 
             cy = y_windowed[i, j][mask]

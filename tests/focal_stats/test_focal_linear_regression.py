@@ -129,7 +129,7 @@ def test_nan_behaviour_non_center(rs, error, reduce):
 
     assert np.all(
         ~np.isnan(
-            focal_linear_regression(a, b, window=5, fraction_accepted=0, error=error, reduce=reduce).beta[*fringes]
+            focal_linear_regression(a, b, window=5, fraction_accepted=0, error=error, reduce=reduce).beta[fringes]
         )
     )
 
