@@ -37,8 +37,8 @@ def grouped_linear_regression_bootstrap_simple(x, y, n_bootstraps=1000):
     return RegressionResult(
         beta=beta,
         beta_se=beta_se,
-        r_squared=r2,
-        r_squared_se=r2_se,
+        r2=r2,
+        r2_se=r2_se,
         df=df,
         t=beta / beta_se,
         p=calculate_p_value(beta / beta_se, df),
@@ -68,21 +68,21 @@ def test_py_grouped_linear_regression_with_example_data(rs, error):
     if error is not None:
         assert np.all(np.isnan(result.beta_se[0]))
         assert np.all(np.isnan(result.p[0]))
-        assert np.isnan(result.r_squared[0])
+        assert np.isnan(result.r2[0])
 
         assert np.allclose(result.beta_se[1], [0.03, 0.03], atol=0.01)
         assert np.allclose(result.p[1], [1, 0], atol=0.2)
-        assert np.allclose(result.r_squared[1], 0.8, atol=0.8)
+        assert np.allclose(result.r2[1], 0.8, atol=0.8)
     else:
         assert result.beta_se is None
         assert result.p is None
-        assert result.r_squared is None
+        assert result.r2 is None
 
     if error == 'bootstrap':
-        assert np.isnan(result.r_squared_se[0])
-        assert np.isclose(result.r_squared_se[1], 0.01, atol=0.1)
+        assert np.isnan(result.r2_se[0])
+        assert np.isclose(result.r2_se[1], 0.01, atol=0.1)
     else:
-        assert result.r_squared_se is None
+        assert result.r2_se is None
 
 
 @pytest.mark.parametrize('error', ['bootstrap', 'parametric'])
@@ -96,7 +96,7 @@ def test_py_grouped_linear_regression_with_empty_arrays(error):
     assert result.beta_se.size == 0
     assert result.t.size == 0
     assert result.p.size == 0
-    assert result.r_squared.size == 0
+    assert result.r2.size == 0
 
 
 @pytest.mark.parametrize('error', ['bootstrap', 'parametric'])
@@ -120,7 +120,7 @@ def test_grouped_linear_regression_against_simple(rs):
     assert np.allclose(result.beta[0], result_simple.beta, atol=0.1)
     assert np.allclose(result.beta_se[0], result_simple.beta_se, atol=0.1)
     assert np.allclose(result.p[0], result_simple.p, atol=0.1)
-    assert np.allclose(result.r_squared, result_simple.r_squared, atol=0.1)
+    assert np.allclose(result.r2, result_simple.r2, atol=0.1)
 
 
 def test_grouped_linear_regression_against_bootstrap_non_correlated(rs):
@@ -135,7 +135,7 @@ def test_grouped_linear_regression_against_bootstrap_non_correlated(rs):
     assert np.allclose(result.beta, result_bootstrap.beta, atol=0.1)
     assert np.allclose(result.beta_se, result_bootstrap.beta_se, atol=0.1)
     assert np.allclose(result.p, result_bootstrap.p, atol=0.1)
-    assert np.allclose(result.r_squared, result_bootstrap.r_squared, atol=0.1)
+    assert np.allclose(result.r2, result_bootstrap.r2, atol=0.1)
 
 
 def test_grouped_linear_regression_against_bootstrap_correlated(rs):
@@ -150,7 +150,7 @@ def test_grouped_linear_regression_against_bootstrap_correlated(rs):
     assert np.allclose(result.beta, result_bootstrap.beta, atol=0.1)
     assert np.allclose(result.beta_se, result_bootstrap.beta_se, atol=0.1)
     assert np.allclose(result.p, result_bootstrap.p, atol=0.1)
-    assert np.allclose(result.r_squared, result_bootstrap.r_squared, atol=0.1)
+    assert np.allclose(result.r2, result_bootstrap.r2, atol=0.1)
 
 
 def test_py_grouped_linear_regression_against_scipy(rs):
@@ -172,7 +172,7 @@ def test_py_grouped_linear_regression_against_scipy(rs):
         np.testing.assert_allclose(result.beta_se[group, 0], expected_result.intercept_stderr, rtol=1e-4)
         np.testing.assert_allclose(result.beta_se[group, 1], expected_result.stderr, rtol=1e-4)
         np.testing.assert_allclose(result.p[group, 1], expected_result.pvalue, rtol=1e-4)
-        np.testing.assert_allclose(result.r_squared[group], expected_result.rvalue**2, rtol=1e-4)
+        np.testing.assert_allclose(result.r2[group], expected_result.rvalue**2, rtol=1e-4)
 
 
 def test_py_grouped_linear_regression_against_statsmodels(rs):
@@ -195,7 +195,7 @@ def test_py_grouped_linear_regression_against_statsmodels(rs):
         np.testing.assert_allclose(result.beta_se[group], result_statsmodels.bse, rtol=1e-4)
         np.testing.assert_allclose(result.p[group], result_statsmodels.pvalues, rtol=1e-4)
         np.testing.assert_allclose(result.t[group], result_statsmodels.tvalues, rtol=1e-4)
-        np.testing.assert_allclose(result.r_squared[group], result_statsmodels.rsquared, rtol=1e-4)
+        np.testing.assert_allclose(result.r2[group], result_statsmodels.rsquared, rtol=1e-4)
 
 
 def test_grouped_linear_regression_against_statsmodels_3D(rs):
@@ -213,7 +213,7 @@ def test_grouped_linear_regression_against_statsmodels_3D(rs):
     np.testing.assert_allclose(cy_result.p[0], sm_result.pvalues, rtol=1e-4)
     np.testing.assert_allclose(cy_result.t[0], sm_result.tvalues, rtol=1e-4)
     np.testing.assert_allclose(cy_result.df[0], sm_result.df_resid, rtol=1e-4)
-    np.testing.assert_allclose(cy_result.r_squared[0], sm_result.rsquared, rtol=1e-4)
+    np.testing.assert_allclose(cy_result.r2[0], sm_result.rsquared, rtol=1e-4)
 
 
 def test_py_grouped_linear_regression_with_nan_values(rs):
@@ -233,7 +233,7 @@ def test_py_grouped_linear_regression_with_nan_values(rs):
     np.testing.assert_allclose(result.beta_se[1, 0], expected_result.intercept_stderr, rtol=1e-4)
     np.testing.assert_allclose(result.beta_se[1, 1], expected_result.stderr, rtol=1e-4)
     np.testing.assert_allclose(result.p[1, 1], expected_result.pvalue, rtol=1e-4)
-    np.testing.assert_allclose(result.r_squared[1], expected_result.rvalue**2, rtol=1e-4)
+    np.testing.assert_allclose(result.r2[1], expected_result.rvalue**2, rtol=1e-4)
 
 
 @pytest.mark.parametrize('error', ['bootstrap', 'parametric'])
@@ -253,7 +253,7 @@ def test_grouped_linear_regression_pd(ind, v1, v2, error):
             'p_1',
             't_0',
             't_1',
-            'r_squared',
+            'r2',
         }
     )
 

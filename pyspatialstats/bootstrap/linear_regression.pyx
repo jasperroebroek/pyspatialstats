@@ -60,7 +60,7 @@ cdef void bootstrap_linear_regression(
 
         for k in range(nf):
             ws_add(&ws_beta[k], lrr_tmp.beta[k])
-        ws_add(ws_r2, lrr_tmp.r_squared)
+        ws_add(ws_r2, lrr_tmp.r2)
 
     lrr.df = lrr_tmp.df  # They should all be the same
 
@@ -70,8 +70,8 @@ cdef void bootstrap_linear_regression(
 
     # Write aggregated results into lrr
     lrr.status = 0
-    lrr.r_squared = ws_mean(ws_r2)
-    lrr.r_squared_se = ws_std(ws_r2)
+    lrr.r2 = ws_mean(ws_r2)
+    lrr.r2_se = ws_std(ws_r2)
 
     for k in range(nf):
         lrr.beta[k] = ws_mean(&ws_beta[k])

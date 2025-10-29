@@ -43,7 +43,7 @@ def focal_linear_regression_simple(x, y, window=5, reduce=False):
     beta_se = np.full(shape + (nf,), np.nan)
     t = np.full(shape + (nf,), np.nan)
     p = np.full(shape + (nf,), np.nan)
-    r_squared = np.full(shape, np.nan)
+    r2 = np.full(shape, np.nan)
 
     window_shape_2d = window.get_shape(ndim=2)
     window_shape_3d = window_shape_2d + (nf - 1,)
@@ -76,7 +76,7 @@ def focal_linear_regression_simple(x, y, window=5, reduce=False):
             beta_se[idx] = result.bse
             t[idx] = result.tvalues
             p[idx] = result.pvalues
-            r_squared[idx] = result.rsquared
+            r2[idx] = result.rsquared
 
     return RegressionResult(
         df=df,
@@ -84,7 +84,7 @@ def focal_linear_regression_simple(x, y, window=5, reduce=False):
         beta_se=beta_se,
         t=t,
         p=p,
-        r_squared=r_squared,
+        r2=r2,
     )
 
 

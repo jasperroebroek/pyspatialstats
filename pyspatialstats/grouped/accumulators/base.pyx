@@ -43,8 +43,6 @@ cdef class BaseGroupedStatAccumulator:
         0: success
         -1: failure
         """
-        with gil:
-            print("BaseGrouped reset_stat_v")
         memset(self.stat_v, 0, self.capacity * self.eltsize)
         return 0
 

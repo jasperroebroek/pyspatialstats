@@ -28,7 +28,7 @@ def test_focal_linear_regression_values(v1, v2, rs, reduce, error):
     if error is not None:
         np.testing.assert_allclose(cy_result.beta_se, sm_result.beta_se, equal_nan=True, atol=0.1)
         np.testing.assert_allclose(cy_result.p, sm_result.p, equal_nan=True, atol=0.2)
-        np.testing.assert_allclose(cy_result.r_squared, sm_result.r_squared, equal_nan=True, atol=0.1)
+        np.testing.assert_allclose(cy_result.r2, sm_result.r2, equal_nan=True, atol=0.1)
 
 
 @pytest.mark.parametrize('error', ('parametric', 'bootstrap', None))
@@ -46,7 +46,7 @@ def test_focal_linear_regression_values_against_statsmodels(rs, error):
     if error is not None:
         np.testing.assert_allclose(cy_result.beta_se[0, 0], sm_result.bse, atol=0.1)
         np.testing.assert_allclose(cy_result.p[0, 0], sm_result.pvalues, atol=0.1)
-        np.testing.assert_allclose(cy_result.r_squared[0, 0], sm_result.rsquared, atol=0.1)
+        np.testing.assert_allclose(cy_result.r2[0, 0], sm_result.rsquared, atol=0.1)
         np.testing.assert_allclose(cy_result.df[0, 0], sm_result.df_resid, atol=0.1)
 
 
@@ -67,9 +67,9 @@ def test_focal_linear_regression_bootstrap_values(rs):
     np.testing.assert_allclose(result.beta[0, 0], expected_result.beta)
     np.testing.assert_allclose(result.beta_se[0, 0], expected_result.beta_se)
     np.testing.assert_allclose(result.p[0, 0], expected_result.p)
-    np.testing.assert_allclose(result.r_squared[0, 0], expected_result.r_squared)
+    np.testing.assert_allclose(result.r2[0, 0], expected_result.r2)
     np.testing.assert_allclose(result.t[0, 0], expected_result.t)
-    np.testing.assert_allclose(result.r_squared_se[0, 0], expected_result.r_squared_se)
+    np.testing.assert_allclose(result.r2_se[0, 0], expected_result.r2_se)
     np.testing.assert_allclose(result.df[0, 0], expected_result.df)
 
 
@@ -175,7 +175,7 @@ def test_parallel(rs, error, reduce):
     if error is not None:
         np.testing.assert_allclose(linear_r.beta_se, parallel_r.beta_se, equal_nan=True, atol=0.1)
         np.testing.assert_allclose(linear_r.p, parallel_r.p, equal_nan=True, atol=0.15)
-        np.testing.assert_allclose(linear_r.r_squared, parallel_r.r_squared, equal_nan=True, atol=0.1)
+        np.testing.assert_allclose(linear_r.r2, parallel_r.r2, equal_nan=True, atol=0.1)
         np.testing.assert_allclose(linear_r.df, parallel_r.df, equal_nan=True, atol=0.1)
 
 

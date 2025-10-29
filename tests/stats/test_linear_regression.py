@@ -141,7 +141,7 @@ def test_against_sklearn_simple(simple_data):
 
     np.testing.assert_allclose(result.beta, sk_coef, rtol=1e-10)
 
-    np.testing.assert_allclose(result.r_squared, sk_r2, rtol=1e-10)
+    np.testing.assert_allclose(result.r2, sk_r2, rtol=1e-10)
 
 
 def test_against_statsmodels_simple(simple_data):
@@ -164,7 +164,7 @@ def test_against_statsmodels_simple(simple_data):
     np.testing.assert_allclose(result.beta_se, sm_model.bse, rtol=1e-8)
 
     # Compare R-squared
-    np.testing.assert_allclose(result.r_squared, sm_model.rsquared, rtol=1e-10)
+    np.testing.assert_allclose(result.r2, sm_model.rsquared, rtol=1e-10)
 
 
 def test_against_scipy_simple(simple_data):
@@ -182,7 +182,7 @@ def test_against_scipy_simple(simple_data):
     # Compare
     np.testing.assert_allclose(result.intercept, intercept, rtol=1e-10)
     np.testing.assert_allclose(result.slope[0], slope, rtol=1e-10)
-    np.testing.assert_allclose(result.r_squared, r_value**2, rtol=1e-10)
+    np.testing.assert_allclose(result.r2, r_value**2, rtol=1e-10)
 
 
 def test_against_sklearn_complex(complex_data):
@@ -202,7 +202,7 @@ def test_against_sklearn_complex(complex_data):
 
     # Compare
     np.testing.assert_allclose(result.beta, sk_coef, rtol=1e-10)
-    np.testing.assert_allclose(result.r_squared, sk_r2, rtol=1e-10)
+    np.testing.assert_allclose(result.r2, sk_r2, rtol=1e-10)
 
 
 def test_against_statsmodels_complex(complex_data):
@@ -221,7 +221,7 @@ def test_against_statsmodels_complex(complex_data):
     # Compare
     np.testing.assert_allclose(result.beta, sm_model.params, rtol=1e-10)
     np.testing.assert_allclose(result.beta_se, sm_model.bse, rtol=1e-8)
-    np.testing.assert_allclose(result.r_squared, sm_model.rsquared, rtol=1e-10)
+    np.testing.assert_allclose(result.r2, sm_model.rsquared, rtol=1e-10)
 
 
 # Various feature count tests
@@ -288,7 +288,7 @@ def test_insufficient_data():
     result = reg.compute()
 
     # Should return invalid results (NaN or similar)
-    assert np.isnan(result.r_squared) or result.degrees_of_freedom <= 0
+    assert np.isnan(result.r2) or result.degrees_of_freedom <= 0
 
 
 def test_perfect_collinearity():
@@ -391,7 +391,7 @@ def test_mixed_add_methods():
     # Results should be identical
     np.testing.assert_allclose(result1.beta, result2.beta, rtol=1e-15)
     np.testing.assert_allclose(result1.beta_se, result2.beta_se, rtol=1e-15)
-    np.testing.assert_allclose(result1.r_squared, result2.r_squared, rtol=1e-15)
+    np.testing.assert_allclose(result1.r2, result2.r2, rtol=1e-15)
 
 
 # Incremental operation tests
@@ -415,7 +415,7 @@ def test_incremental_vs_batch():
     # Should be identical
     np.testing.assert_allclose(result_batch.beta, result_inc.beta, rtol=1e-15)
     np.testing.assert_allclose(result_batch.beta_se, result_inc.beta_se, rtol=1e-15)
-    np.testing.assert_allclose(result_batch.r_squared, result_inc.r_squared, rtol=1e-15)
+    np.testing.assert_allclose(result_batch.r2, result_inc.r2, rtol=1e-15)
 
 
 def test_merge_vs_combined_batch():
@@ -447,7 +447,7 @@ def test_merge_vs_combined_batch():
     # Should be identical
     np.testing.assert_allclose(result_combined.beta, result_merged.beta)
     np.testing.assert_allclose(result_combined.beta_se, result_merged.beta_se)
-    np.testing.assert_allclose(result_combined.r_squared, result_merged.r_squared)
+    np.testing.assert_allclose(result_combined.r2, result_merged.r2)
 
 
 def test_multiple_merges():
@@ -485,7 +485,7 @@ def test_multiple_merges():
 
     # Should be identical
     np.testing.assert_allclose(result_merged.beta, result_combined.beta, rtol=1e-15)
-    np.testing.assert_allclose(result_merged.r_squared, result_combined.r_squared, rtol=1e-15)
+    np.testing.assert_allclose(result_merged.r2, result_combined.r2, rtol=1e-15)
 
 
 # Result object tests
@@ -503,7 +503,7 @@ def test_result_properties(sample_result):
     """Test result properties."""
     assert hasattr(sample_result, 'beta')
     assert hasattr(sample_result, 'beta_se')
-    assert hasattr(sample_result, 'r_squared')
+    assert hasattr(sample_result, 'r2')
     assert hasattr(sample_result, 'df')
 
     assert len(sample_result.beta) == 3  # intercept + 2 features
@@ -575,4 +575,4 @@ def test_no_error_calculations(rs, calc_se, calc_r2):
     assert result.calc_se == calc_se
 
     assert calc_se == ~np.all(result.beta_se == 0)
-    assert calc_r2 == ~np.isnan(result.r_squared)
+    assert calc_r2 == ~np.isnan(result.r2)

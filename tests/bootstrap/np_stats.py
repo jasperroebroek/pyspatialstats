@@ -51,8 +51,8 @@ def np_bootstrap_linear_regression(x, y, n_bootstraps, seed=None):
         df=df,
         beta=beta,
         beta_se=beta_se,
-        r_squared=r2s.mean(),
-        r_squared_se=r2s.std(ddof=1),
+        r2=r2s.mean(),
+        r2_se=r2s.std(ddof=1),
         t=t,
         p=p_values,
     )

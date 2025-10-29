@@ -101,7 +101,7 @@ cpdef void _focal_linear_regression(
     np.npy_uint8[:, ::1] mask,
     double[:, :, :] beta,
     double[:, :, :] beta_se,
-    double[:, :] r_squared,
+    double[:, :] r2,
     double[:, :] df,
     int[:] fringe,
     double threshold,
@@ -171,7 +171,7 @@ cpdef void _focal_linear_regression(
                     continue
 
                 df[i, j] = lrr.df
-                r_squared[i, j] = lrr.r_squared
+                r2[i, j] = lrr.r2
 
                 for k in range(nf):
                     beta[i, j, k] = lrr.beta[k]
@@ -187,8 +187,8 @@ cpdef _focal_linear_regression_bootstrap(
     np.npy_uint8[:, ::1] mask,
     double[:, :, :] beta,
     double[:, :, :] beta_se,
-    double[:, :] r_squared,
-    double[:, :] r_squared_se,
+    double[:, :] r2,
+    double[:, :] r2_se,
     double[:, :] df,
     int[:] fringe,
     double threshold,
@@ -283,8 +283,8 @@ cpdef _focal_linear_regression_bootstrap(
                     continue
 
                 df[i, j] = lrr.df
-                r_squared[i, j] = lrr.r_squared
-                r_squared_se[i, j] = lrr.r_squared_se
+                r2[i, j] = lrr.r2
+                r2_se[i, j] = lrr.r2_se
 
                 for k in range(nf):
                     beta[i, j, k] = lrr.beta[k]

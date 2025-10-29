@@ -3,8 +3,8 @@ from pyspatialstats.random.random cimport Random
 
 cdef class BaseGroupedStatAccumulator:
     cdef:
-        size_t eltsize
-        size_t capacity
+        public size_t eltsize
+        public size_t capacity
         size_t *count_v
         void *stat_v
     cdef void _deallocate(self) noexcept nogil
@@ -23,6 +23,6 @@ cdef class GroupedIntStatAccumulator(BaseGroupedStatAccumulator):
 
 cdef class BaseGroupedBootstrapAccumulator(BaseGroupedStatAccumulator):
     cdef:
-        size_t n_boot
+        public size_t n_boot
         Random rng
     cdef int bootstrap_resize(self, size_t capacity) except -1 nogil

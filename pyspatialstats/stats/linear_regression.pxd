@@ -22,8 +22,8 @@ cdef struct LinearRegressionResult:
     double df
     double* beta
     double* beta_se
-    double r_squared
-    double r_squared_se
+    double r2
+    double r2_se
     int status
     bint calc_se
     bint calc_r2
@@ -56,8 +56,8 @@ cdef class CyRegressionResult:
     cdef readonly int nf
     cdef readonly cnp.ndarray beta
     cdef readonly cnp.ndarray beta_se
-    cdef readonly double r_squared
-    cdef readonly double r_squared_se
+    cdef readonly double r2
+    cdef readonly double r2_se
     cdef readonly int df
     cdef readonly int status
     cdef readonly bint calc_se

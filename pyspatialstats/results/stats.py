@@ -42,8 +42,8 @@ class RegressionResult(StatResult):
     beta_se: Optional[FloatResult] = None
     t: Optional[FloatResult] = None
     p: Optional[FloatResult] = None
-    r_squared: Optional[FloatResult] = None
-    r_squared_se: Optional[FloatResult] = None
+    r2: Optional[FloatResult] = None
+    r2_se: Optional[FloatResult] = None
 
 
 @dataclass

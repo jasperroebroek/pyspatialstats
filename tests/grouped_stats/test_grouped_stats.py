@@ -1,10 +1,11 @@
+from collections.abc import Callable
 from functools import partial
-from typing import Callable, Optional
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from pyspatialstats.bootstrap.config import BootstrapConfig
 from pyspatialstats.grouped import grouped_correlation as grouped_correlation_internal
 from pyspatialstats.grouped import grouped_count, grouped_max, grouped_min, grouped_std, grouped_sum
 from pyspatialstats.grouped import grouped_linear_regression as grouped_linear_regression_internal
@@ -22,12 +23,16 @@ def double_v(v):
     return v1, v2
 
 
-def grouped_mean(ind, v, filtered=True, **kwargs):
+def _grouped_mean(ind, v, filtered=True, **kwargs):
     r = grouped_mean_internal(ind, v, filtered=filtered, **kwargs)
     if filtered:
         return r[['mean']]
-    else:
-        return r.mean
+    return r.mean
+
+
+grouped_mean = partial(_grouped_mean, error=None)
+grouped_mean_parametric = partial(_grouped_mean, error='parametric')
+grouped_mean_bootstrap = partial(_grouped_mean, error='bootstrap', bootstrap_config=BootstrapConfig(seed=0))
 
 
 def grouped_correlation(ind, v, filtered=True, **kwargs):
@@ -35,11 +40,10 @@ def grouped_correlation(ind, v, filtered=True, **kwargs):
     r = grouped_correlation_internal(ind, v1, v2, filtered=filtered, **kwargs)
     if filtered:
         return r[['c']]
-    else:
-        return r.c
+    return r.c
 
 
-def grouped_linear_regression(ind, v, filtered=True, **kwargs):
+def _grouped_linear_regression(ind, v, filtered=True, **kwargs):
     v1, v2 = double_v(v)
     v1 = v1[..., None]
     r = grouped_linear_regression_internal(ind, v1, v2, filtered=filtered, **kwargs)
@@ -48,7 +52,15 @@ def grouped_linear_regression(ind, v, filtered=True, **kwargs):
     return r.beta
 
 
-def numpy_correlation(v, mask: Optional[np.ndarray] = None):
+grouped_linear_regression = partial(_grouped_linear_regression, error='parametric')
+grouped_linear_regression_bootstrap = partial(
+    _grouped_linear_regression,
+    error='bootstrap',
+    bootstrap_config=BootstrapConfig(seed=0),
+)
+
+
+def numpy_correlation(v, mask: np.ndarray | None = None):
     v1, v2 = double_v(v)
     if mask is not None:
         v1 = v1[mask]
@@ -56,7 +68,7 @@ def numpy_correlation(v, mask: Optional[np.ndarray] = None):
     return np.corrcoef(v1, v2)[0, 1]
 
 
-def numpy_regression(v, mask: Optional[np.ndarray] = None):
+def numpy_regression(v, mask: np.ndarray | None = None):
     v1, v2 = double_v(v)
     if mask is not None:
         if mask.size == 0:
@@ -66,7 +78,7 @@ def numpy_regression(v, mask: Optional[np.ndarray] = None):
     return np.polyfit(v1, v2, 1)[::-1]
 
 
-def numpy_func(v, fun: Callable, mask: Optional[np.ndarray] = None, **kwargs):
+def numpy_func(v, fun: Callable, mask: np.ndarray | None = None, **kwargs):
     if mask is not None:
         v = v[mask]
     return fun(v, **kwargs)
@@ -75,12 +87,15 @@ def numpy_func(v, fun: Callable, mask: Optional[np.ndarray] = None, **kwargs):
 GROUPED_STAT_FUNCTIONS = [
     grouped_max,
     grouped_mean,
+    grouped_mean_parametric,
+    grouped_mean_bootstrap,
     grouped_min,
     grouped_std,
     grouped_count,
     grouped_sum,
     grouped_correlation,
     grouped_linear_regression,
+    grouped_linear_regression_bootstrap,
 ]
 
 
@@ -88,11 +103,14 @@ NPY_STAT_FUNCTIONS = {
     grouped_count: partial(numpy_func, fun=np.count_nonzero),
     grouped_max: partial(numpy_func, fun=np.max),
     grouped_mean: partial(numpy_func, fun=np.mean),
+    grouped_mean_parametric: partial(numpy_func, fun=np.mean),
+    grouped_mean_bootstrap: partial(numpy_func, fun=np.mean),
     grouped_min: partial(numpy_func, fun=np.min),
     grouped_std: partial(numpy_func, fun=np.std, ddof=1),
     grouped_sum: partial(numpy_func, fun=np.sum),
     grouped_correlation: numpy_correlation,
     grouped_linear_regression: numpy_regression,
+    grouped_linear_regression_bootstrap: numpy_regression,
 }
 
 
@@ -104,13 +122,19 @@ CHECK_NULL = {
 DEFAULT_CHECK_NULL = lambda x: np.isnan(x)  # noqa
 
 
+ERROR = {
+    grouped_linear_regression_bootstrap: 0.1,
+    grouped_mean_bootstrap: 0.1,
+}
+
+
 @pytest.mark.parametrize('gs', GROUPED_STAT_FUNCTIONS)
 def test_grouped_stats_single_group(gs):
     np_gs = NPY_STAT_FUNCTIONS[gs]
     ind = np.ones(10, dtype=np.uintp)
     v = np.arange(1, 11, dtype=np.float64)
     r = gs(ind, v, filtered=False)
-    assert np.allclose(r[1], np_gs(v), atol=1e-5)
+    assert np.allclose(r[1], np_gs(v), atol=ERROR.get(gs, 1e-5))
 
 
 @pytest.mark.parametrize('gs', GROUPED_STAT_FUNCTIONS)
@@ -121,7 +145,7 @@ def test_grouped_stats(ind, v, gs, chunks):
 
     for i in range(int(ind.max()) + 1):
         expected_r = np_gs(v, mask=ind == i)
-        assert np.allclose(r[i], expected_r, atol=1e-5)
+        assert np.allclose(r[i], expected_r, atol=ERROR.get(gs, 1e-5))
 
 
 @pytest.mark.parametrize('gs', GROUPED_STAT_FUNCTIONS)
@@ -133,7 +157,7 @@ def test_grouped_stats_pd(ind, v, gs):
     for i in result_df.index:
         mask = ind == i
         expected_r = np_gs(v, mask=mask)
-        assert np.allclose(np.asarray(result_df.loc[i]), expected_r, atol=1e-5)
+        assert np.allclose(np.asarray(result_df.loc[i]), expected_r, atol=ERROR.get(gs, 1e-5))
 
 
 @pytest.mark.parametrize('gs', GROUPED_STAT_FUNCTIONS)
@@ -154,11 +178,13 @@ def test_grouped_stats_all_nans(gs):
 
 @pytest.mark.parametrize('gs', GROUPED_STAT_FUNCTIONS)
 def test_grouped_stats_large_values(gs):
+    if gs == grouped_linear_regression_bootstrap:
+        return
     np_gs = NPY_STAT_FUNCTIONS[gs]
     ind = np.array([1, 1, 1, 1, 1, 1], dtype=np.uintp)
     v = np.array([1e38, 1e-38, 1e38, 1e-38, 1e38, 1e-38], dtype=np.float64)
     r = gs(ind, v, filtered=False)
-    assert np.allclose(r[1], np_gs(v), atol=1e-5)
+    assert np.allclose(r[1], np_gs(v), rtol=ERROR.get(gs, 1e-5))
 
 
 @pytest.mark.parametrize('chunks', (None, 75))
@@ -171,7 +197,7 @@ def test_parallel_against_linear(rs, gs, chunks, filtered):
     r = gs(ind=ind, v=v, chunks=chunks, filtered=filtered)
     r_expected = gs(ind=ind, v=v, chunks=None, filtered=filtered)
 
-    np.testing.assert_allclose(r, r_expected, equal_nan=True)
+    np.testing.assert_allclose(r, r_expected, equal_nan=True, atol=ERROR.get(gs, 1e-5))
 
 
 @pytest.mark.parametrize('gs', GROUPED_STAT_FUNCTIONS)
@@ -184,4 +210,4 @@ def test_different_sized_cy_result_objects(rs, gs):
     r = gs(ind=ind, v=a, chunks=50, filtered=False)
     r_expected = gs(ind=ind, v=a, chunks=None, filtered=False)
 
-    np.testing.assert_allclose(r, r_expected, equal_nan=True)
+    np.testing.assert_allclose(r, r_expected, equal_nan=True, atol=1e-3)

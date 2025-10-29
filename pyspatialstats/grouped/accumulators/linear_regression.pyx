@@ -24,7 +24,7 @@ def empty_result(size: int, nf: int, calc_se: bool = True, calc_r2: bool = True)
         beta_se=np.full((size, nf), fill_value=np.nan, dtype=np.float64) if calc_se else None,
         t=np.full((size, nf), fill_value=np.nan, dtype=np.float64) if calc_se else None,
         p=np.full((size, nf), fill_value=np.nan, dtype=np.float64) if calc_se else None,
-        r_squared=np.full(size, fill_value=np.nan, dtype=np.float64) if calc_r2 else None
+        r2=np.full(size, fill_value=np.nan, dtype=np.float64) if calc_r2 else None
     )
 
 
@@ -118,8 +118,8 @@ cdef class GroupedLinearRegressionAccumulator(BaseGroupedStatAccumulator):
         result_stat_v = r.get_stat_v()
 
         for i in range(capacity):
-            self_count = self.count_v[i]
-            other_count = other.count_v[i]
+            self_count = self.get_count(i)
+            other_count = other.get_count(i)
 
             r.count_v[i] = self_count + other_count
 
@@ -141,12 +141,12 @@ cdef class GroupedLinearRegressionAccumulator(BaseGroupedStatAccumulator):
             double[:] df = np.full(self.capacity, fill_value=np.nan, dtype=np.float64)
             double[:, :] beta = np.full((self.capacity, self.nf), fill_value=np.nan, dtype=np.float64)
             double[:, :] beta_se
-            double[:] r_squared
+            double[:] r2
 
         if self.calc_se:
             beta_se = np.full((self.capacity, self.nf), fill_value=np.nan, dtype=np.float64)
         if self.calc_r2:
-            r_squared = np.full(self.capacity, fill_value=np.nan, dtype=np.float64)
+            r2 = np.full(self.capacity, fill_value=np.nan, dtype=np.float64)
 
         for i in range(self.capacity):
             lrs_to_result(&stat_v[i], lrr, self.calc_se, self.calc_r2)
@@ -157,7 +157,7 @@ cdef class GroupedLinearRegressionAccumulator(BaseGroupedStatAccumulator):
 
             df[i] = lrr.df
             if self.calc_r2:
-                r_squared[i] = lrr.r_squared
+                r2[i] = lrr.r2
             for j in range(self.nf):
                 beta[i, j] = lrr.beta[j]
             if self.calc_se:
@@ -177,7 +177,7 @@ cdef class GroupedLinearRegressionAccumulator(BaseGroupedStatAccumulator):
             df=df.base,
             beta=beta.base,
             beta_se=beta_se.base if self.calc_se else None,
-            r_squared=r_squared.base if self.calc_r2 else None,
+            r2=r2.base if self.calc_r2 else None,
             t=np_t,
             p=p
         )
@@ -196,13 +196,13 @@ cdef class GroupedLinearRegressionAccumulator(BaseGroupedStatAccumulator):
             double[:] df = np.full(num_inds, fill_value=np.nan, dtype=np.float64)
             double[:, :] beta = np.full((num_inds, self.nf), fill_value=np.nan, dtype=np.float64)
             double[:, :] beta_se
-            double[:] r_squared
+            double[:] r2
             size_t i, idx
 
         if self.calc_se:
             beta_se = np.full((num_inds, self.nf), fill_value=np.nan, dtype=np.float64)
         if self.calc_r2:
-            r_squared = np.full(num_inds, fill_value=np.nan, dtype=np.float64)
+            r2 = np.full(num_inds, fill_value=np.nan, dtype=np.float64)
 
         for i in range(num_inds):
             idx = indices[i]
@@ -215,7 +215,7 @@ cdef class GroupedLinearRegressionAccumulator(BaseGroupedStatAccumulator):
             df[i] = lrr.df
 
             if self.calc_r2:
-                r_squared[i] = lrr.r_squared
+                r2[i] = lrr.r2
             for j in range(self.nf):
                 beta[i, j] = lrr.beta[j]
             if self.calc_se:
@@ -237,7 +237,7 @@ cdef class GroupedLinearRegressionAccumulator(BaseGroupedStatAccumulator):
                 df=df.base,
                 beta=beta.base,
                 beta_se=beta_se.base if self.calc_se else None,
-                r_squared=r_squared.base if self.calc_r2 else None,
+                r2=r2.base if self.calc_r2 else None,
                 t=np_t,
                 p=p
             )
@@ -318,6 +318,47 @@ cdef class GroupedBootstrapLinearRegressionAccumulator(BaseGroupedBootstrapAccum
 
         return 0
 
+    def __add__(self, GroupedBootstrapLinearRegressionAccumulator other) -> GroupedBootstrapLinearRegressionAccumulator:
+        if self.nf != other.nf:
+            raise ValueError("nf must match in both accumulators")
+
+        cdef:
+            size_t i, n_total
+            size_t capacity = self.capacity if self.capacity > other.capacity else other.capacity
+
+            LinearRegressionState *self_stat_v = self.get_stat_v()
+            LinearRegressionState *other_stat_v = other.get_stat_v()
+            LinearRegressionState *result_stat_v
+
+            long self_count, other_count
+            size_t boot_idx
+
+            GroupedBootstrapLinearRegressionAccumulator r
+
+        if self.n_boot != other.n_boot:
+            raise ValueError("n_boot must match in both accumulators")
+
+        # create new accumulator with max capacity
+        r = GroupedBootstrapLinearRegressionAccumulator()
+        r.nf = self.nf
+        r.n_boot = self.n_boot
+        r.bootstrap_resize(capacity // self.n_boot)
+
+        result_stat_v = r.get_stat_v()
+
+        for i in range(capacity):
+            self_count = self.get_count(i)
+            other_count = other.get_count(i)
+
+            r.count_v[i] = self_count + other_count
+
+            if self_count > 0:
+                lrs_merge(&result_stat_v[i], &self_stat_v[i])
+            if other_count > 0:
+                lrs_merge(&result_stat_v[i], &other_stat_v[i])
+
+        return r
+
     def to_result(self):
         if self.capacity == 0 or self.nf == 0 or self.stat_v == NULL or self.count_v == NULL:
             return empty_result(0, self.nf)
@@ -331,8 +372,8 @@ cdef class GroupedBootstrapLinearRegressionAccumulator(BaseGroupedBootstrapAccum
             double[:] df = np.full(n_groups, np.nan, dtype=np.float64)
             double[:, :] beta = np.full((n_groups, self.nf), np.nan, dtype=np.float64)
             double[:, :] beta_se = np.full((n_groups, self.nf), np.nan, dtype=np.float64)
-            double[:] r_squared = np.full(n_groups, np.nan, dtype=np.float64)
-            double[:] r_squared_se = np.full(n_groups, np.nan, dtype=np.float64)
+            double[:] r2 = np.full(n_groups, np.nan, dtype=np.float64)
+            double[:] r2_se = np.full(n_groups, np.nan, dtype=np.float64)
 
         for i in range(n_groups):
             lrs_array_to_bootstrap_result(
@@ -346,8 +387,8 @@ cdef class GroupedBootstrapLinearRegressionAccumulator(BaseGroupedBootstrapAccum
                 continue
 
             df[i] = lrr.df
-            r_squared[i] = lrr.r_squared
-            r_squared_se[i] = lrr.r_squared_se
+            r2[i] = lrr.r2
+            r2_se[i] = lrr.r2_se
             for j in range(self.nf):
                 beta[i, j] = lrr.beta[j]
                 beta_se[i, j] = lrr.beta_se[j]
@@ -360,8 +401,8 @@ cdef class GroupedBootstrapLinearRegressionAccumulator(BaseGroupedBootstrapAccum
             df=df.base,
             beta=beta.base,
             beta_se=beta_se.base,
-            r_squared=r_squared.base,
-            r_squared_se=r_squared_se.base,
+            r2=r2.base,
+            r2_se=r2_se.base,
             t=np_t,
             p=calculate_p_value(np_t, df.base[:, np.newaxis])
         )
@@ -382,8 +423,8 @@ cdef class GroupedBootstrapLinearRegressionAccumulator(BaseGroupedBootstrapAccum
             double[:] df = np.empty(n_groups, dtype=np.float64)
             double[:, :] beta = np.full((n_groups, self.nf), np.nan, dtype=np.float64)
             double[:, :] beta_se = np.full((n_groups, self.nf), np.nan, dtype=np.float64)
-            double[:] r_squared = np.full(n_groups, np.nan, dtype=np.float64)
-            double[:] r_squared_se = np.full(n_groups, np.nan, dtype=np.float64)
+            double[:] r2 = np.full(n_groups, np.nan, dtype=np.float64)
+            double[:] r2_se = np.full(n_groups, np.nan, dtype=np.float64)
 
             size_t i, idx
 
@@ -400,8 +441,8 @@ cdef class GroupedBootstrapLinearRegressionAccumulator(BaseGroupedBootstrapAccum
                 continue
 
             df[i] = lrr.df
-            r_squared[i] = lrr.r_squared
-            r_squared_se[i] = lrr.r_squared_se
+            r2[i] = lrr.r2
+            r2_se[i] = lrr.r2_se
             for j in range(self.nf):
                 beta[i, j] = lrr.beta[j]
                 beta_se[i, j] = lrr.beta_se[j]
@@ -416,8 +457,8 @@ cdef class GroupedBootstrapLinearRegressionAccumulator(BaseGroupedBootstrapAccum
                 df=df.base,
                 beta=beta.base,
                 beta_se=beta_se.base,
-                r_squared=r_squared.base,
-                r_squared_se=r_squared_se.base,
+                r2=r2.base,
+                r2_se=r2_se.base,
                 t=np_t,
                 p=calculate_p_value(np_t, df.base[:, np.newaxis])
             )

@@ -78,7 +78,7 @@ class FocalLinearRegressionResultConfig(FocalDataClassResultConfig):
     def active_fields(self) -> tuple[str, ...]:
         match self.error:
             case 'parametric':
-                return tuple(field for field in self.fields if field != 'r_squared_se')
+                return tuple(field for field in self.fields if field != 'r2_se')
             case 'bootstrap':
                 return self.fields
             case None:
@@ -96,7 +96,7 @@ class FocalLinearRegressionResultConfig(FocalDataClassResultConfig):
             return self.x_ndim
         elif name in ('beta', 'beta_se', 't', 'p'):
             return 3
-        elif name in ('y', 'df', 'r_squared', 'r_squared_se'):
+        elif name in ('y', 'df', 'r2', 'r2_se'):
             return 2
         else:
             raise ValueError(f'Unknown field: {name}')

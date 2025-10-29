@@ -14,8 +14,8 @@ def test_bootstrap_lr_basic():
 
     result = py_bootstrap_linear_regression(x, y, 1000, seed=13)
 
-    assert isinstance(result.r_squared, float)
-    assert isinstance(result.r_squared_se, float)
+    assert isinstance(result.r2, float)
+    assert isinstance(result.r2_se, float)
     assert result.beta.shape == (n_params + 1,)
     assert result.beta_se.shape == (n_params + 1,)
     assert result.status == 0
@@ -44,8 +44,8 @@ def test_bootstrap_lr_seed_consistency():
 
     np.testing.assert_array_equal(r1.beta, r2.beta)
     np.testing.assert_array_equal(r1.beta_se, r2.beta_se)
-    assert r1.r_squared == r2.r_squared
-    assert r1.r_squared_se == r2.r_squared_se
+    assert r1.r2 == r2.r2
+    assert r1.r2_se == r2.r2_se
 
 
 def test_bootstrap_lr_comparison_to_numpy():
@@ -57,5 +57,5 @@ def test_bootstrap_lr_comparison_to_numpy():
 
     np.testing.assert_allclose(cy_result.beta, np_result.beta, rtol=1e-1, atol=1e-1)
     np.testing.assert_allclose(cy_result.beta_se, np_result.beta_se, rtol=1e-1, atol=1e-1)
-    np.testing.assert_allclose(cy_result.r_squared, np_result.r_squared, rtol=1e-1, atol=1e-1)
-    np.testing.assert_allclose(cy_result.r_squared_se, np_result.r_squared_se, rtol=1e-1, atol=1e-1)
+    np.testing.assert_allclose(cy_result.r2, np_result.r2, rtol=1e-1, atol=1e-1)
+    np.testing.assert_allclose(cy_result.r2_se, np_result.r2_se, rtol=1e-1, atol=1e-1)

@@ -26,8 +26,8 @@ def _focal_linear_regression_base(
     df: np.ndarray,
     beta: np.ndarray,
     beta_se: Optional[np.ndarray] = None,
-    r_squared: Optional[np.ndarray] = None,
-    r_squared_se: Optional[np.ndarray] = None,
+    r2: Optional[np.ndarray] = None,
+    r2_se: Optional[np.ndarray] = None,
     t: Optional[np.ndarray] = None,
     p: Optional[np.ndarray] = None,
     **kwargs,
@@ -36,7 +36,7 @@ def _focal_linear_regression_base(
         case None:
             _focal_linear_regression_simple(**kwargs, df=df, beta=beta)
         case 'parametric':
-            _focal_linear_regression(**kwargs, df=df, beta=beta, beta_se=beta_se, r_squared=r_squared)
+            _focal_linear_regression(**kwargs, df=df, beta=beta, beta_se=beta_se, r2=r2)
         case 'bootstrap':
             if bootstrap_config is None:
                 bootstrap_config = BootstrapConfig()
@@ -44,7 +44,7 @@ def _focal_linear_regression_base(
             kwargs['seed'] = bootstrap_config.seed
 
             _focal_linear_regression_bootstrap(
-                **kwargs, df=df, beta=beta, beta_se=beta_se, r_squared=r_squared, r_squared_se=r_squared_se
+                **kwargs, df=df, beta=beta, beta_se=beta_se, r2=r2, r2_se=r2_se
             )
         case _:
             raise ValueError(f'Unknown error type: {result_config.error}')

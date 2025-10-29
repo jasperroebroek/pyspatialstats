@@ -254,7 +254,7 @@ cdef void lrs_to_result(LinearRegressionState* lrs, LinearRegressionResult* resu
         # R-squared
         y_mean = lrs.y_sum / lrs.count
         tss = lrs.yty - lrs.count * y_mean * y_mean
-        result.r_squared = 1.0 - rss / tss if tss > 0 else 0.0
+        result.r2 = 1.0 - rss / tss if tss > 0 else 0.0
 
     free(XtX_copy)
     free(Xty_copy)
@@ -354,15 +354,15 @@ cdef void lrs_array_to_bootstrap_result(
             continue
 
         lrr.df += lrr_tmp.df
-        ws_add(&r2_ws, lrr_tmp.r_squared)
+        ws_add(&r2_ws, lrr_tmp.r2)
         for j in range(lrr.nf):
             ws_add(&beta_ws[j], lrr_tmp.beta[j])
 
     for j in range(lrr.nf):
         lrr.beta[j] = ws_mean(&beta_ws[j])
         lrr.beta_se[j] = ws_std(&beta_ws[j])
-    lrr.r_squared = ws_mean(&r2_ws)
-    lrr.r_squared_se = ws_std(&r2_ws)
+    lrr.r2 = ws_mean(&r2_ws)
+    lrr.r2_se = ws_std(&r2_ws)
 
     if r2_ws.count == 0:
         lrr.df = -1
@@ -448,8 +448,8 @@ cdef inline void lrr_reset(LinearRegressionResult* lrr) noexcept nogil:
     lrr.calc_r2 = False
     lrr.status = 0
     lrr.df = 0
-    lrr.r_squared = NAN
-    lrr.r_squared_se = NAN
+    lrr.r2 = NAN
+    lrr.r2_se = NAN
     memset(lrr.beta, 0, lrr.nf * sizeof(double))
     memset(lrr.beta_se, 0, lrr.nf * sizeof(double))
 
@@ -656,7 +656,7 @@ cdef class CyRegressionResult:
         Regression coefficients (intercept first, then features)
     beta_se : np.ndarray
         Standard errors of coefficients
-    r_squared : float
+    r2 : float
         R-squared statistic
     df : int
         Degrees of freedom for residuals
@@ -674,8 +674,8 @@ cdef class CyRegressionResult:
         py_result.calc_r2 = result.calc_r2
 
         py_result.nf = nf
-        py_result.r_squared = result.r_squared
-        py_result.r_squared_se = result.r_squared_se
+        py_result.r2 = result.r2
+        py_result.r2_se = result.r2_se
         py_result.df = int(result.df)
 
         # Copy coefficient arrays
@@ -726,7 +726,7 @@ cdef class CyRegressionResult:
             f"Status: {self.status} -> {self.status == 0}",
             f"Calculation of standard errors: {self.calc_se}",
             f"Calculation of R-squared: {self.calc_r2}",
-            f"R-squared: {self.r_squared:.6f}",
+            f"R-squared: {self.r2:.6f}",
             f"Degrees of freedom: {self.df}",
             f"",
             f"Coefficients:",
@@ -741,4 +741,4 @@ cdef class CyRegressionResult:
         return "\n".join(lines)
 
     def __repr__(self):
-        return f"RegressionResult(n_params={self.n_params}, r_squared={self.r_squared:.4f}, df={self.df})"
+        return f"RegressionResult(n_params={self.n_params}, r2={self.r2:.4f}, df={self.df})"

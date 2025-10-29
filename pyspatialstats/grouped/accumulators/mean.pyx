@@ -64,35 +64,34 @@ cdef class GroupedBootstrapMeanAccumulator(BaseGroupedBootstrapAccumulator):
         return 0
 
     def __add__(self, GroupedBootstrapMeanAccumulator other) -> GroupedBootstrapMeanAccumulator:
-        cdef:
-            size_t i, n_total
-            size_t min_cap = self.capacity if self.capacity < other.capacity else other.capacity
-            size_t max_cap = self.capacity if self.capacity > other.capacity else other.capacity
-
-            GroupedBootstrapMeanAccumulator r = GroupedBootstrapMeanAccumulator(max_cap // self.n_boot)
-            double *result_stat_v = r.get_stat_v()
-            double *self_stat_v = self.get_stat_v()
-            double *other_stat_v = other.get_stat_v()
-
-            double *source_stat_v
-            size_t *source_count_v
-
         if self.n_boot != other.n_boot:
             raise ValueError("Bootstrap dimensions must match.")
 
-        for i in range(min_cap):
-            result_stat_v[i] = self_stat_v[i] + other_stat_v[i]
-            r.count_v[i] = self.count_v[i] + other.count_v[i]
+        cdef:
+            size_t i, n_total
+            size_t capacity = self.capacity if self.capacity > other.capacity else other.capacity
 
-        if self.capacity > other.capacity:
-            source_stat_v = self_stat_v
-            source_count_v = self.count_v
-        else:
-            source_stat_v = other_stat_v
-            source_count_v = other.count_v
+            GroupedBootstrapMeanAccumulator r
+            double *result_stat_v
+            double *self_stat_v = self.get_stat_v()
+            double *other_stat_v = other.get_stat_v()
 
-        memcpy(result_stat_v + min_cap, source_stat_v + min_cap, (max_cap - min_cap) * sizeof(double))
-        memcpy(r.count_v + min_cap, source_count_v + min_cap, (max_cap - min_cap) * sizeof(size_t))
+        r = GroupedBootstrapMeanAccumulator()
+        r.post_init(n_boot=self.n_boot)
+        r.bootstrap_resize(capacity // self.n_boot)
+
+        result_stat_v = r.get_stat_v()
+
+        for i in range(capacity):
+            self_count = self.get_count(i)
+            other_count = other.get_count(i)
+
+            r.count_v[i] = self_count + other_count
+
+            if self_count > 0:
+                result_stat_v[i] += self_stat_v[i]
+            if other_count > 0:
+                result_stat_v[i] += other_stat_v[i]
 
         return r
 
